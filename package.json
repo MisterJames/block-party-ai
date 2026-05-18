@@ -1,0 +1,31 @@
+{
+  "name": "block-party-ai",
+  "type": "module",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "test:e2e": "playwright test",
+    "typecheck": "nuxt typecheck"
+  },
+  "dependencies": {
+    "@nuxt/ui": "latest",
+    "@pinia/nuxt": "latest",
+    "echarts": "latest",
+    "nuxt": "latest",
+    "pinia": "latest",
+    "vue-echarts": "latest"
+  },
+  "devDependencies": {
+    "@oxc-minify/binding-win32-x64-msvc": "0.131.0",
+    "@oxc-parser/binding-win32-x64-msvc": "^0.131.0",
+    "@oxc-transform/binding-win32-x64-msvc": "0.131.0",
+    "@playwright/test": "latest",
+    "typescript": "latest",
+    "vue-tsc": "latest"
+  }
+}
