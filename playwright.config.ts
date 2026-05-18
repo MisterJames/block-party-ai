@@ -34,6 +34,8 @@ export default defineConfig({
       MINECRAFT_EULA_ACCEPTED: 'false',
       MINECRAFT_SERVER_ONLINE_MODE: 'false',
       MAPHEW_SURVEY_LOG_PATH: 'test-results/survey-map-test.jsonl',
+      COORDINATION_STATE_PATH: 'test-results/coordination-test.json',
+      COORDINATION_EVENTS_LOG_PATH: 'test-results/coordination-events-test.jsonl',
       OPENAI_MODEL: 'test-planner-model',
       PLANNER_POC_FAKE_AI: '1'
     },

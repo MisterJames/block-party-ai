@@ -329,6 +329,8 @@ Example environment values:
     STOCKER_BOT_NAME=Chesterton
     GATHERER_BOT_NAME=SpruceLee
     PROVISIONS_BOT_NAME=Snackwella
+    COORDINATION_STATE_PATH=state/coordination.json
+    COORDINATION_EVENTS_LOG_PATH=state/coordination-events.jsonl
 
 AI usage records store estimated costs in USD using the pricing snapshot available when the API call was made. `AI_CONVERT_PRICING_TO` only changes dashboard display totals; provide a USD conversion rate in `AI_CONVERSION_PRICES_JSON`, such as `{"CAD":1.3751}`, if you want costs shown in another currency. If OpenAI returns a dated snapshot model like `gpt-5.2-2025-12-11`, the app can use pricing configured for the base key `gpt-5.2`.
 
@@ -381,13 +383,13 @@ The dashboard starts idle. Use the Local World dropdown to start or stop the con
 
 ### Phase 5: Coordination core
 
-* Add the job manager
-* Add reusable plan and job template storage
-* Add bot queues and step tracking
-* Add bot-originated job requests for food, resources, tools, location info, and planner support
-* Add planner proposal batches and human approval
-* Add greenlight rules for repeatable low-risk jobs
+* Add JSON/JSONL-backed coordination state
+* Add reusable goals, plans, jobs, steps, job requests, templates, and greenlight rules
+* Add bot queues and step tracking for Maphew plus simulated Snackwella, Chesterton, AnvilAnnie, and Blocko workflows
+* Add deterministic planner proposal batches and human approval
+* Wire coordination summaries into the dashboard and make `/jobs` the command center
 * Keep Minecraft chat as a visible announcement layer while local state remains authoritative
+* Completed implementation notes: `docs/implementation/coordination-core.md`
 
 ### Phase 6: Provisions, chests, tools, and safe setup
 

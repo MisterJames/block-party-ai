@@ -3,7 +3,6 @@ import { dirname } from 'node:path'
 import { expect, test } from '@playwright/test'
 
 const placeholderRoutes = [
-  ['/jobs', 'Jobs'],
   ['/chests', 'Chests / Items'],
   ['/projects', 'Projects'],
   ['/logs', 'Logs'],
@@ -11,6 +10,8 @@ const placeholderRoutes = [
 ] as const
 
 const surveyFixturePath = 'test-results/survey-map-test.jsonl'
+const coordinationFixturePath = 'test-results/coordination-test.json'
+const coordinationEventsFixturePath = 'test-results/coordination-events-test.jsonl'
 const surveyFixtureRecords = [
   {
     id: 'sample-grass',
@@ -71,6 +72,9 @@ const surveyFixtureRecords = [
 ] as const
 
 test.beforeEach(async ({}, testInfo) => {
+  await rm(coordinationFixturePath, { force: true })
+  await rm(coordinationEventsFixturePath, { force: true })
+
   if (testInfo.title.includes('empty survey file')) {
     return
   }
@@ -172,7 +176,7 @@ test('overview does not auto-start bot or mining activity', async ({ page }) => 
 
   await expect(counter).toHaveText('0')
   await expect(page.getByText('No mining jobs running')).toBeVisible()
-  await expect(page.getByTestId('bots-online')).toHaveText('0 / 7')
+  await expect(page.getByTestId('bots-online')).toHaveText('0 / 8')
 
   await expect
     .poll(async () => parseCounter(await counter.textContent()), {
@@ -192,6 +196,34 @@ test('/bots exposes Maphew controls without auto-connecting', async ({ page }) =
   await expect(page.getByText('Start or connect a local Minecraft server')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Bots', level: 2 })).toBeVisible()
   await expect(page.getByText('CaptainCobble')).toBeVisible()
+  await expect(page.getByText('Snackwella')).toBeVisible()
+})
+
+test('/jobs renders coordination queues and approvals', async ({ request, page }) => {
+  await page.goto('/jobs')
+
+  await expect(page.getByRole('heading', { name: 'Jobs', level: 1 })).toBeVisible()
+  await expect(page.getByText('Coordination core')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bot Queues' })).toBeVisible()
+  await expect(page.getByRole('row', { name: /Snackwella/ })).toBeVisible()
+  await expect(page.getByText('Prepare food for Maphew')).toBeVisible()
+  await expect(page.getByText('Craft a hoe')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Greenlights' })).toBeVisible()
+  await expect(page.getByText('Maphew routine survey')).toBeVisible()
+
+  await page.getByPlaceholder(/Build a foundry/).fill('Build a foundry near the workshop.')
+  await page.getByRole('button', { name: 'Draft' }).click()
+  await expect(page.getByRole('heading', { name: 'Planner Proposals' })).toBeVisible()
+  await expect(page.getByText(/4 jobs/).first()).toBeVisible()
+
+  const coordinationResponse = await request.get('/api/coordination')
+  const coordination = await coordinationResponse.json()
+
+  expect(coordination.summary.jobsActive).toBeGreaterThan(0)
+  expect(coordination.summary.greenlightsEnabled).toBeGreaterThanOrEqual(2)
+  expect(coordination.proposals.length).toBeGreaterThan(0)
+
+  await page.screenshot({ path: 'test-results/jobs-coordination-desktop.png', fullPage: true })
 })
 
 test('/world renders the Maphew survey map and pins findings', async ({ page }) => {

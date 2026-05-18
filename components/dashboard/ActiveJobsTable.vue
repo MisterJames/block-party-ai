@@ -65,7 +65,10 @@ function statusColor(status: JobRow['status']) {
   return {
     Running: 'success',
     Queued: 'info',
-    Waiting: 'neutral'
-  }[status] as 'success' | 'info' | 'neutral'
+    Waiting: 'neutral',
+    Proposed: 'warning',
+    Blocked: 'warning',
+    Completed: 'success'
+  }[status] as 'success' | 'info' | 'neutral' | 'warning'
 }
 </script>

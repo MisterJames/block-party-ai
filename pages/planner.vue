@@ -79,6 +79,7 @@
                   color="primary"
                   :loading="isSubmitting"
                   :disabled="isSubmitting"
+                  @click="submitPrompt"
                 />
               </div>
             </form>

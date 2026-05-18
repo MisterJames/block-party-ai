@@ -1,8 +1,22 @@
 import { defineStore } from 'pinia'
 import { $fetch } from 'ofetch'
 import type { ActivityEvent, AiUsageDashboardSummary, BotRow, BotStatus, DashboardMetric, DashboardOperationalStatus, HealthStat, JobRow, LocalServerStatus, MaphewStatus, SparklineMetric, WorldConnectionStatus, WorldSummary } from '~/types/dashboard'
+import type { CoordinationDashboardPayload, CoordinationJobStatus, CoordinationApprovalState, CrewBot } from '~/types/coordination'
 
 const plannedCrew: BotRow[] = [
+  {
+    id: 'snackwella',
+    name: 'Snackwella',
+    role: 'Provisions / Farming',
+    avatar: 'S',
+    status: 'Planned',
+    statusTone: 'neutral',
+    currentJob: 'Placeholder crew role',
+    jobDetail: 'Food and farming workflows planned',
+    location: 'Not connected',
+    tool: 'Pending',
+    inventoryPercent: null
+  },
   {
     id: 'captain-cobble',
     name: 'CaptainCobble',
@@ -141,82 +155,57 @@ export const useDashboardStore = defineStore('dashboard', () => {
   })
 
   const maphewStatus = computed<MaphewStatus | null>(() => operationalStatus.value?.maphew ?? null)
+  const coordination = computed<CoordinationDashboardPayload | null>(() => operationalStatus.value?.coordination ?? null)
   const localServer = computed<LocalServerStatus | null>(() => operationalStatus.value?.localServer ?? null)
   const worldConnection = computed<WorldConnectionStatus | null>(() => operationalStatus.value?.worldConnection ?? null)
   const survey = computed(() => maphewStatus.value?.survey ?? null)
 
   const botsOnline = computed(() => maphewStatus.value?.connected ? 1 : 0)
+  const crewTotal = computed(() => coordination.value?.crew.length ?? 8)
   const surveyRunning = computed(() => maphewStatus.value?.state === 'surveying')
 
-  const bots = computed<BotRow[]>(() => [
-    maphewRow(maphewStatus.value),
-    ...plannedCrew
-  ])
+  const bots = computed<BotRow[]>(() => {
+    const crew = coordination.value?.crew
 
-  const activeJobs = computed<JobRow[]>(() => [
-    {
-      id: survey.value?.surveyId ?? 'spawn-256',
-      label: 'Survey spawn area',
-      icon: 'i-lucide-map',
-      detail: survey.value
-        ? `${survey.value.area.size.x} x ${survey.value.area.size.z}, ${survey.value.sampledTiles}/${survey.value.totalTiles} samples`
-        : '256 x 256 around spawn',
-      assigned: 'Maphew',
-      progress: survey.value?.progressPercent ?? 0,
-      status: surveyRunning.value ? 'Running' : 'Waiting',
-      approval: 'Not required'
-    },
-    {
-      id: 'clear-tunnel-placeholder',
-      label: 'Tunnel clearing crew',
-      icon: 'i-lucide-pickaxe',
-      detail: 'Placeholder until digger services exist',
-      assigned: 'CaptainCobble',
-      progress: 0,
-      status: 'Waiting',
-      approval: 'Pending'
-    },
-    {
-      id: 'follow-leader-placeholder',
-      label: 'Digger worker sync',
-      icon: 'i-lucide-route',
-      detail: 'Placeholder until digger services exist',
-      assigned: 'Doug',
-      progress: 0,
-      status: 'Waiting',
-      approval: 'Not required'
-    },
-    {
-      id: 'smelt-tools-placeholder',
-      label: 'Tool crafting',
-      icon: 'i-lucide-flame',
-      detail: 'Placeholder until blacksmith service exists',
-      assigned: 'AnvilAnnie',
-      progress: 0,
-      status: 'Waiting',
-      approval: 'Not required'
-    },
-    {
-      id: 'restock-build-placeholder',
-      label: 'Restock build chest',
-      icon: 'i-lucide-package',
-      detail: 'Placeholder until stocker service exists',
-      assigned: 'Chesterton',
-      progress: 0,
-      status: 'Waiting',
-      approval: 'Not required'
-    },
-    {
-      id: 'gather-oak-placeholder',
-      label: 'Resource gathering',
-      icon: 'i-lucide-tree-pine',
-      detail: 'Placeholder until gatherer service exists',
-      assigned: 'SpruceLee',
-      progress: 0,
-      status: 'Waiting',
-      approval: 'Pending'
+    if (!crew?.length) {
+      return [
+        maphewRow(maphewStatus.value),
+        ...plannedCrew
+      ]
     }
-  ])
+
+    return [
+      maphewRow(maphewStatus.value, crew.find((bot) => bot.id === 'maphew')),
+      ...crew.filter((bot) => bot.id !== 'maphew').map(coordinationBotRow)
+    ]
+  })
+
+  const activeJobs = computed<JobRow[]>(() => {
+    const jobs = coordination.value?.jobs
+
+    if (!jobs?.length) {
+      return []
+    }
+
+    return jobs
+      .filter((job) => !['cancelled', 'rejected'].includes(job.status))
+      .slice(0, 6)
+      .map((job) => {
+        const bot = coordination.value?.crew.find((crewBot) => crewBot.id === job.assignedBotId)
+        const currentStep = job.steps.find((step) => ['running', 'blocked', 'pending'].includes(step.status)) ?? job.steps.at(-1)
+
+        return {
+          id: job.id,
+          label: job.label,
+          icon: templateIcon(job.templateId),
+          detail: currentStep ? `${currentStep.label} · ${job.detail}` : job.detail,
+          assigned: bot?.name ?? job.assignedBotId,
+          progress: job.progressPercent,
+          status: jobRowStatus(job.status),
+          approval: jobRowApproval(job.approval)
+        }
+      })
+  })
 
   const healthStats = computed<HealthStat[]>(() => [
     {
@@ -224,10 +213,10 @@ export const useDashboardStore = defineStore('dashboard', () => {
       value: serverLabel(localServer.value),
       tone: localServer.value?.ready ? 'green' : localServer.value?.state === 'blocked' ? 'amber' : 'neutral'
     },
-    { label: 'Bots', value: `${botsOnline.value} / 7`, tone: botsOnline.value ? 'green' : 'amber' },
-    { label: 'Jobs', value: surveyRunning.value ? '1 Running' : '0 Running', tone: surveyRunning.value ? 'blue' : 'neutral' },
+    { label: 'Bots', value: `${botsOnline.value} / ${crewTotal.value}`, tone: botsOnline.value ? 'green' : 'amber' },
+    { label: 'Jobs', value: `${coordination.value?.summary.jobsActive ?? 0} Active`, tone: coordination.value?.summary.jobsActive ? 'blue' : 'neutral' },
     { label: 'Survey', value: `${survey.value?.progressPercent ?? 0}%`, tone: surveyRunning.value ? 'blue' : 'neutral', percent: survey.value?.progressPercent ?? 0 },
-    { label: 'Samples', value: `${survey.value?.sampledTiles ?? 0}/${survey.value?.totalTiles ?? 1024}`, tone: 'neutral' }
+    { label: 'Requests', value: `${coordination.value?.summary.requestsOpen ?? 0} Open`, tone: coordination.value?.summary.requestsOpen ? 'amber' : 'neutral' }
   ])
 
   const worldSummary = computed<WorldSummary>(() => ({
@@ -242,63 +231,70 @@ export const useDashboardStore = defineStore('dashboard', () => {
     walkablePercent: survey.value?.walkablePercent ?? 0
   }))
 
-  const events = computed<ActivityEvent[]>(() => [
-    {
-      id: 'evt-server',
-      title: `Local server ${serverLabel(localServer.value).toLowerCase()}`,
-      message: localServer.value?.blockers[0] ?? `${worldConnection.value?.host ?? 'localhost'}:${worldConnection.value?.port ?? 25565}`,
-      time: shortTime(localServer.value?.lastStartedAt),
-      severity: localServer.value?.ready ? 'success' : localServer.value?.state === 'blocked' ? 'warning' : 'info',
-      icon: 'i-lucide-server'
-    },
-    {
-      id: 'evt-maphew',
-      title: `Maphew ${maphewLabel(maphewStatus.value).toLowerCase()}`,
-      message: maphewStatus.value?.lastError ?? maphewStatus.value?.currentJob ?? 'Waiting for explicit connect',
-      time: shortTime(maphewStatus.value?.lastActivityAt),
-      severity: maphewStatus.value?.state === 'failed' || maphewStatus.value?.state === 'blocked' ? 'warning' : maphewStatus.value?.connected ? 'success' : 'info',
-      icon: 'i-lucide-bot'
-    },
-    {
-      id: 'evt-survey',
-      title: 'Survey data store',
-      message: survey.value ? `${survey.value.sampledTiles} samples in ${survey.value.storage.path}` : 'No survey samples recorded',
-      time: shortTime(survey.value?.lastSurveyAt),
-      severity: survey.value?.sampledTiles ? 'success' : 'info',
-      icon: 'i-lucide-map'
-    },
-    {
-      id: 'evt-ai',
-      title: 'AI usage logging ready',
-      message: aiUsageSummary.value ? `Appending records to ${aiUsageSummary.value.storage.path}` : 'AI usage summary loading',
-      time: 'Now',
-      severity: 'info',
-      icon: 'i-lucide-receipt-text'
-    },
-    {
-      id: 'evt-crew',
-      title: 'Crew placeholders staged',
-      message: 'Non-Maphew bots are planned, not connected',
-      time: 'Now',
-      severity: 'info',
-      icon: 'i-lucide-users'
-    }
-  ])
+  const events = computed<ActivityEvent[]>(() => {
+    const coordinationEvents = coordination.value?.events.map((event) => ({
+      id: event.id,
+      title: event.title,
+      message: event.message,
+      time: shortTime(event.timestamp),
+      severity: event.severity,
+      icon: eventIcon(event.type)
+    } satisfies ActivityEvent)) ?? []
+    const localEvents: ActivityEvent[] = [
+      {
+        id: 'evt-server',
+        title: `Local server ${serverLabel(localServer.value).toLowerCase()}`,
+        message: localServer.value?.blockers[0] ?? `${worldConnection.value?.host ?? 'localhost'}:${worldConnection.value?.port ?? 25565}`,
+        time: shortTime(localServer.value?.lastStartedAt),
+        severity: localServer.value?.ready ? 'success' : localServer.value?.state === 'blocked' ? 'warning' : 'info',
+        icon: 'i-lucide-server'
+      },
+      {
+        id: 'evt-maphew',
+        title: `Maphew ${maphewLabel(maphewStatus.value).toLowerCase()}`,
+        message: maphewStatus.value?.lastError ?? maphewStatus.value?.currentJob ?? 'Waiting for explicit connect',
+        time: shortTime(maphewStatus.value?.lastActivityAt),
+        severity: maphewStatus.value?.state === 'failed' || maphewStatus.value?.state === 'blocked' ? 'warning' : maphewStatus.value?.connected ? 'success' : 'info',
+        icon: 'i-lucide-bot'
+      },
+      {
+        id: 'evt-survey',
+        title: 'Survey data store',
+        message: survey.value ? `${survey.value.sampledTiles} samples in ${survey.value.storage.path}` : 'No survey samples recorded',
+        time: shortTime(survey.value?.lastSurveyAt),
+        severity: survey.value?.sampledTiles ? 'success' : 'info',
+        icon: 'i-lucide-map'
+      },
+      {
+        id: 'evt-ai',
+        title: 'AI usage logging ready',
+        message: aiUsageSummary.value ? `Appending records to ${aiUsageSummary.value.storage.path}` : 'AI usage summary loading',
+        time: 'Now',
+        severity: 'info',
+        icon: 'i-lucide-receipt-text'
+      }
+    ]
+
+    return [
+      ...coordinationEvents,
+      ...localEvents
+    ].slice(0, 8)
+  })
 
   const metrics = computed<DashboardMetric[]>(() => [
     {
       id: 'bots-online',
       label: 'Bots Online',
-      value: `${botsOnline.value} / 7`,
-      helper: botsOnline.value ? 'Maphew connected; crew planned' : 'No bots auto-connected',
+      value: `${botsOnline.value} / ${crewTotal.value}`,
+      helper: botsOnline.value ? 'Maphew connected; crew simulated' : 'No bots auto-connected',
       icon: 'i-lucide-bot',
       accent: 'green'
     },
     {
       id: 'active-jobs',
       label: 'Active Jobs',
-      value: surveyRunning.value ? '1' : '0',
-      helper: surveyRunning.value ? 'Maphew survey running' : 'Explicit start required',
+      value: `${coordination.value?.summary.jobsActive ?? 0}`,
+      helper: `${coordination.value?.summary.jobsPendingApproval ?? 0} waiting for approval`,
       icon: 'i-lucide-clipboard-list',
       accent: 'blue'
     },
@@ -314,7 +310,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
       id: 'items-crafted',
       label: 'Items Crafted',
       value: '0',
-      helper: 'No crafting jobs running',
+      helper: `${coordination.value?.summary.greenlightsEnabled ?? 0} greenlights enabled`,
       icon: 'i-lucide-hammer',
       accent: 'amber'
     },
@@ -332,6 +328,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     'Block Party AI v0.1.0-alpha.1',
     maphewStatus.value?.version ? `Minecraft ${maphewStatus.value.version}` : 'Maphew disconnected',
     localServer.value?.ready ? 'Local server reachable' : 'Local server stopped',
+    coordination.value ? `Coordination ${coordination.value.summary.storagePath}` : 'Coordination loading',
     aiUsageSummary.value ? `AI usage ${aiUsageSummary.value.storage.path}` : 'AI usage loading',
     'America/Winnipeg'
   ])
@@ -440,6 +437,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     metrics,
     operationalError,
     operationalStatus,
+    coordination,
     survey,
     worldConnection,
     worldSummary,
@@ -456,21 +454,39 @@ export const useDashboardStore = defineStore('dashboard', () => {
   }
 })
 
-function maphewRow(status: MaphewStatus | null): BotRow {
+function maphewRow(status: MaphewStatus | null, crewBot?: CrewBot): BotRow {
   const survey = status?.survey
 
   return {
     id: 'maphew',
-    name: status?.name ?? 'Maphew',
+    name: status?.name ?? crewBot?.name ?? 'Maphew',
     role: 'Cartographer',
     avatar: 'M',
     status: maphewLabel(status),
     statusTone: maphewTone(status),
-    currentJob: status?.currentJob ?? 'Idle',
-    jobDetail: survey ? `${survey.surveyId}: ${survey.sampledTiles}/${survey.totalTiles} samples` : 'Survey not started',
+    currentJob: status?.currentJob ?? crewBot?.currentJobId ?? 'Idle',
+    jobDetail: survey ? `${survey.surveyId}: ${survey.sampledTiles}/${survey.totalTiles} samples` : crewBot?.inventorySummary ?? 'Survey not started',
     location: status?.position ? `${status.position.x}, ${status.position.y}, ${status.position.z}` : 'Not connected',
     tool: 'Survey kit',
     inventoryPercent: status?.connected ? survey?.progressPercent ?? 0 : null
+  }
+}
+
+function coordinationBotRow(bot: CrewBot): BotRow {
+  const status = coordinationBotStatus(bot)
+
+  return {
+    id: bot.id,
+    name: bot.name,
+    role: bot.role,
+    avatar: bot.avatar,
+    status,
+    statusTone: coordinationBotTone(status),
+    currentJob: bot.currentJobId ? 'Queued coordination job' : bot.runtime === 'planned' ? 'Placeholder crew role' : 'Ready for simulated work',
+    jobDetail: bot.queueLength ? `${bot.queueLength} queued · ${bot.inventorySummary}` : bot.inventorySummary,
+    location: bot.locationLabel,
+    tool: bot.runtime === 'real' ? 'Runtime' : bot.runtime === 'simulated' ? 'Sim' : 'Pending',
+    inventoryPercent: bot.queueLength ? Math.min(100, bot.queueLength * 25) : null
   }
 }
 
@@ -493,6 +509,56 @@ function maphewTone(status: MaphewStatus | null): BotRow['statusTone'] {
   if (status.state === 'connected') return 'green'
   if (status.state === 'connecting' || status.state === 'blocked' || status.state === 'failed') return 'amber'
   return 'neutral'
+}
+
+function coordinationBotStatus(bot: CrewBot): BotStatus {
+  if (bot.status === 'planned') return 'Planned'
+  if (bot.status === 'blocked') return 'Blocked'
+  if (bot.status === 'working') return 'Working'
+  if (bot.status === 'queued') return 'Waiting'
+  if (bot.status === 'offline') return 'Offline'
+  return 'Waiting'
+}
+
+function coordinationBotTone(status: BotStatus): BotRow['statusTone'] {
+  if (status === 'Working') return 'blue'
+  if (status === 'Waiting') return 'green'
+  if (status === 'Blocked' || status === 'Failed') return 'amber'
+  return 'neutral'
+}
+
+function jobRowStatus(status: CoordinationJobStatus): JobRow['status'] {
+  if (status === 'running' || status === 'accepted') return 'Running'
+  if (status === 'queued' || status === 'approved' || status === 'greenlit') return 'Queued'
+  if (status === 'proposed' || status === 'waiting_for_approval') return 'Proposed'
+  if (status === 'blocked' || status === 'failed') return 'Blocked'
+  if (status === 'completed') return 'Completed'
+  return 'Waiting'
+}
+
+function jobRowApproval(approval: CoordinationApprovalState): JobRow['approval'] {
+  if (approval === 'approved') return 'Approved'
+  if (approval === 'greenlit') return 'Greenlit'
+  if (approval === 'pending') return 'Pending'
+  if (approval === 'rejected') return 'Rejected'
+  return 'Not required'
+}
+
+function templateIcon(templateId: string) {
+  if (templateId.includes('survey')) return 'i-lucide-map'
+  if (templateId.includes('fetch') || templateId.includes('stock')) return 'i-lucide-package'
+  if (templateId.includes('craft')) return 'i-lucide-hammer'
+  if (templateId.includes('farm')) return 'i-lucide-wheat'
+  if (templateId.includes('place')) return 'i-lucide-blocks'
+  return 'i-lucide-clipboard-list'
+}
+
+function eventIcon(type: string) {
+  if (type.includes('greenlight')) return 'i-lucide-badge-check'
+  if (type.includes('request')) return 'i-lucide-message-square-warning'
+  if (type.includes('proposal')) return 'i-lucide-sparkles'
+  if (type.includes('job')) return 'i-lucide-clipboard-list'
+  return 'i-lucide-radio'
 }
 
 function serverLabel(status: LocalServerStatus | null) {

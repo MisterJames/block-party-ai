@@ -6,6 +6,7 @@ This page is the lightweight completion index for the repo. Update it when a tas
 
 | Slice | State | Branch | Notes |
 | --- | --- | --- | --- |
+| Phase 5 coordination core | Complete | `feature/coordination-core` | See `docs/implementation/coordination-core.md`. |
 | Phase 5-10 non-digger bot roadmap update | Complete | `feature/non-digger-bot-roadmap` | Inserts Phase 7 real non-digger bot implementation before diggers and shifts later phases down. |
 | Phase 4 crew coordination planning | Complete | `feature/crew-coordination-planning` | See `docs/implementation/crew-coordination-planning.md`. |
 | Phase 3 Maphew site map | Complete | `feature/maphew-site-map` | See `docs/implementation/maphew-site-map.md`. |
@@ -23,7 +24,7 @@ This page is the lightweight completion index for the repo. Update it when a tas
 | Phase 2: Maphew connection and survey data | Complete | Explicit local server controls, Maphew connection APIs, JSONL survey persistence. |
 | Phase 3: Maphew site map | Complete | Render survey data as a rough pixelated map with layers and drill-downs. |
 | Phase 4: Crew coordination design | Complete | Docs-only lexicon and roadmap shuffle for goals, plans, jobs, steps, requests, templates, greenlight rules, and Snackwella. |
-| Phase 5: Coordination core | Unstarted | Job manager, reusable plans/templates, bot queues, planner proposals, approval and greenlight enforcement. |
+| Phase 5: Coordination core | Complete | JSON/JSONL-backed goals, reusable plans/templates, jobs, steps, bot queues, requests, deterministic planner proposals, approvals, greenlights, events, dashboard wiring, and `/jobs` command center. |
 | Phase 6: Provisions, chests, tools, and safe setup | Unstarted | Snackwella provisions/farming, Chesterton stocking, AnvilAnnie tools, Blocko safe-zone and utility crafting workflows. |
 | Phase 7: Non-digger bot implementation | Unstarted | Real Mineflayer adapters for Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination; no diggers or destructive mining. |
 | Phase 8: Digger crew | Unstarted | Digger roles, zone reservations, tunnel jobs, destructive approval gates. |
@@ -34,6 +35,7 @@ This page is the lightweight completion index for the repo. Update it when a tas
 
 * `docs/design/block-party-ui-guidelines.md` - dashboard visual and component rules.
 * `docs/design/references/block-party-ai-dashboard-panels.md` - intended dashboard panels and future backend/API shape.
+* `docs/implementation/coordination-core.md` - completed Phase 5 coordination state, APIs, `/jobs` command center, verification, and follow-ups.
 * `docs/implementation/crew-coordination-planning.md` - Phase 4 coordination lexicon, roadmap shuffle, approval model, and implementation handoff.
 * `docs/implementation/non-digger-bot-implementation.md` - Phase 7 real non-digger bot adapter plan and safety boundaries.
 * `docs/implementation/maphew-site-map.md` - completed Phase 3 pixelated survey map, findings sidebar, and interaction notes.
