@@ -30,6 +30,12 @@ Use `docs/design/references/dashboard-overview-ai-usage.png` as a strong visual 
 
 After meaningful frontend changes, run the app and verify the UI with screenshots at desktop and mobile widths. Check dark mode, compact density, text overflow, responsive fit, placeholder states, and obvious visual regressions before finalizing.
 
+If `nuxt dev` repeats a `#app-manifest` pre-transform error, run `corepack pnpm exec nuxt cleanup` once, then rerun the failed command. This is a Nuxt generated-cache issue after dependency or generated-file churn, not usually an app regression. Playwright's configured web server already runs this cleanup before `pnpm dev`.
+
+Build output should stay free of large-chunk and Tailwind sourcemap warnings. If either returns, treat it as a maintenance regression and inspect `nuxt.config.ts` chunk/sourcemap settings before documenting it as harmless.
+
+Nuxt 3.21 currently emits Node `DEP0155` trailing-slash export-map warnings from upstream Nuxt/Iconify/Vue packages during production build. Do not spend time chasing that as an app regression unless the Nuxt/UI/Iconify stack is being upgraded; it is tracked in `docs/implementation/dashboard-scaffold.md`.
+
 ## Documentation Completion
 
 - At the end of each completed task, update the relevant docs to reflect the current completion state, not just the intended plan.

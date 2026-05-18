@@ -39,9 +39,19 @@ corepack pnpm test:e2e
 
 The Playwright suite captures `test-results/dashboard-overview-desktop.png` for visual review. `test-results/` is intentionally ignored because it is generated output.
 
-## Known warnings and local cleanup
+## Build warning cleanup
 
-Production build currently passes with upstream warnings about large chunks, Tailwind sourcemaps, and Node deprecation messages from Nuxt/Iconify dependencies. These are not app failures.
+Production build warning cleanup is tracked as maintenance work rather than ignored background noise:
+
+* Nuxt/Vite production sourcemaps are disabled for this dashboard app to avoid upstream Tailwind transform sourcemap warnings.
+* The ECharts plugin was removed from Nuxt's global plugin path; `DashboardAiUsagePanel` registers its chart dependencies locally and is lazy-loaded from the overview page.
+* Rollup manual chunks split chart dependencies and Nuxt UI/Iconify-related vendor code so the scaffold does not warn on a single oversized client chunk.
+
+If these warnings return, treat that as a maintenance regression and inspect the current Nuxt UI/Iconify/Tailwind dependency graph before marking them harmless.
+
+Nuxt 3.21 still emits Node `DEP0155` trailing-slash package export deprecation warnings from upstream Nuxt/Iconify/Vue packages during the Nitro production build. The latest compatible package checks still show wildcard export maps in those upstream packages, so do not chase this as an app-level issue unless upgrading the Nuxt/UI/Iconify stack.
+
+## Local Nuxt cache cleanup
 
 If `nuxt dev` prints repeated `#app-manifest` pre-transform errors after dependency or generated-file churn, run:
 
@@ -49,6 +59,8 @@ If `nuxt dev` prints repeated `#app-manifest` pre-transform errors after depende
 corepack pnpm exec nuxt cleanup
 corepack pnpm dev --host 127.0.0.1 --port 3000
 ```
+
+Playwright's configured web server already runs `corepack pnpm exec nuxt cleanup` before starting `pnpm dev`, so routine `corepack pnpm test:e2e` runs should not require a manual cleanup step.
 
 ## Deferred work
 

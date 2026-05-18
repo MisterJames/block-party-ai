@@ -28,7 +28,7 @@
       </div>
 
       <div class="px-5 pt-3">
-        <DashboardAiUsagePanel :metrics="store.aiUsage" />
+        <LazyDashboardAiUsagePanel :metrics="store.aiUsage" />
       </div>
 
       <div class="grid grid-cols-[1fr_400px] gap-3 px-5 pt-3">
