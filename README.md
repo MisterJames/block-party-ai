@@ -402,7 +402,16 @@ The dashboard starts idle. Use the Local World dropdown to start or stop the con
 * Add item transfer jobs between chests
 * Add Blocko safe-zone and utility crafting workflows such as torches and compasses
 
-### Phase 7: Digger crew
+### Phase 7: Non-digger bot implementation
+
+* Add a shared real bot adapter contract for accepting jobs, executing steps, emitting events, creating requests, and announcing status in Minecraft chat
+* Turn simulated non-digger crew workflows into real Mineflayer adapters
+* Implement real low-risk work for Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination
+* Keep greenlight enforcement, queue ownership, and step tracking authoritative in the backend
+* Do not implement dig, clear-volume, tunnel, chamber, or large terrain mutation jobs in this phase
+* Planned implementation notes: `docs/implementation/non-digger-bot-implementation.md`
+
+### Phase 8: Digger crew
 
 * Add a digger role
 * Add zone reservations
@@ -410,7 +419,7 @@ The dashboard starts idle. Use the Local World dropdown to start or stop the con
 * Add safe join buffer between diggers
 * Add human approval before destructive clearVolume jobs
 
-### Phase 8: AI planner
+### Phase 9: AI planner
 
 * Add chat interface
 * Add structured AI planning response
@@ -418,7 +427,7 @@ The dashboard starts idle. Use the Local World dropdown to start or stop the con
 * Add job previews and approval workflow
 * Add AI-drafted template review for unknown goals or jobs
 
-### Phase 9: Coaster prototype
+### Phase 10: Coaster prototype
 
 * Clear a short tunnel
 * Place a small track section

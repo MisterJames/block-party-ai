@@ -31,6 +31,10 @@ Use `docs/design/references/dashboard-overview-ai-usage.png` as a strong visual 
 - Current roadmap priority is coordination before more destructive or specialized bot work.
 - Treat Phase 4 as a docs/design phase for goals, reusable plans, jobs, steps, bot requests, templates, greenlight rules, and capability boundaries.
 - Treat Phase 5 as the first implementation of the coordination core: job manager, queues, requests, planner proposals, approvals, and greenlight enforcement.
+- Treat Phase 6 as simulated provisions, chests, tools, and safe setup so the crew economy can be exercised before additional Mineflayer bots connect.
+- Treat Phase 7 as real non-digger bot implementation for Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination. Do not implement diggers or destructive mining in Phase 7.
+- Treat Phase 8 as the first digger/destructive-work phase, after coordination and non-digger bot adapters exist.
+- Treat Phase 9 as real AI planner authoring, and Phase 10 as the coaster prototype.
 - Snackwella is part of the named crew as the Provisions / Farming bot. Include her in future crew planning alongside Maphew, Chesterton, AnvilAnnie, Blocko, SpruceLee, CaptainCobble, and Doug.
 - Use this lexicon consistently:
   - Goal: desired outcome.
@@ -42,6 +46,7 @@ Use `docs/design/references/dashboard-overview-ai-usage.png` as a strong visual 
   - Greenlight Rule: human-configured approval policy allowing a template or plan to run without repeated approval inside defined limits.
 - Bots may request help or planner support when blocked, but they should not invent major goals such as "build a foundry" on their own.
 - Minecraft chat is the fun visible layer for announcements; structured local state is authoritative.
+- Shared bot adapters should poll or receive assigned jobs, accept or block jobs, execute tracked steps, emit job events, create job requests, and announce status in Minecraft chat. The backend remains authoritative for queues, greenlight rules, and step state.
 
 ## Verification
 

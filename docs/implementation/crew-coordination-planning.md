@@ -26,9 +26,10 @@ The updated order is:
 
 1. Phase 5: Coordination core.
 2. Phase 6: Provisions, chests, tools, and safe setup.
-3. Phase 7: Digger crew.
-4. Phase 8: AI planner.
-5. Phase 9: Coaster prototype.
+3. Phase 7: Non-digger bot implementation.
+4. Phase 8: Digger crew.
+5. Phase 9: AI planner.
+6. Phase 10: Coaster prototype.
 
 This order lets bots request and satisfy resources before they attempt larger destructive or build work.
 
@@ -72,6 +73,8 @@ The next coding slice should build the coordination core with:
 * Minecraft chat announcements for accepted jobs, blockers, requests, and completions.
 
 Keep Maphew as the only real connected executor until the coordination core exists. Planned crew rows can show queues and requests without pretending those bots can execute Mineflayer actions yet.
+
+Phase 6 should still keep Snackwella, Chesterton, AnvilAnnie, and Blocko simulated. Phase 7 is the point where those non-digger roles become real Mineflayer bot adapters. Diggers and destructive mining remain out of scope until Phase 8.
 
 ## Verification
 
