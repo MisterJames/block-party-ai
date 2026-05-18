@@ -6,7 +6,7 @@ This page is the lightweight completion index for the repo. Update it when a tas
 
 | Slice | State | Branch | Notes |
 | --- | --- | --- | --- |
-| Phase 1 AI usage dashboard | Complete | `feature/ai-usage-dashboard` | See `docs/implementation/ai-usage-dashboard.md`. |
+| Phase 1 AI usage dashboard and planner POC | Complete | `feature/ai-usage-dashboard` | See `docs/implementation/ai-usage-dashboard.md`. |
 | Phase 0 dashboard scaffold | Complete | `codex/dashboard-scaffold` | See `docs/implementation/dashboard-scaffold.md`. |
 | Builder head site icon | Complete | `feature/site-icon-builder-head` | See `docs/implementation/site-icon-builder-head.md`. |
 

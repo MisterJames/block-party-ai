@@ -3,7 +3,6 @@ import { expect, test } from '@playwright/test'
 const placeholderRoutes = [
   ['/bots', 'Bots'],
   ['/jobs', 'Jobs'],
-  ['/planner', 'Planner'],
   ['/world', 'World'],
   ['/chests', 'Chests / Items'],
   ['/projects', 'Projects'],
@@ -59,9 +58,36 @@ test('AI usage records are appended and summarized', async ({ request, page }) =
   expect(summary.storage.survivesNuxtCleanup).toBe(true)
 
   await page.goto('/')
-  await expect(page.getByText('test-planner-model')).toBeVisible()
+  await expect(page.getByText('test-planner-model').first()).toBeVisible()
   await expect(page.getByText('plan_spawn_survey')).not.toBeVisible()
   await expect(page.getByText(/records loaded/)).toBeVisible()
+})
+
+test('planner POC submits a free-form call and refreshes AI usage', async ({ request, page }) => {
+  const beforeSummaryResponse = await request.get('/api/ai-usage/summary')
+  const beforeSummary = await beforeSummaryResponse.json()
+
+  await page.goto('/planner')
+
+  await expect(page.getByRole('heading', { name: 'Planner', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'AI Usage' })).toBeVisible()
+  await expect(page.getByText('Free-form Planner Chat')).toBeVisible()
+
+  await page.getByPlaceholder(/Ask the planner something exploratory/).fill('Sketch a safe first Maphew survey note.')
+  await page.getByRole('button', { name: 'Send' }).click()
+
+  await expect(page.getByText(/POC response:/)).toBeVisible()
+  await expect(page.getByText('test-planner-model').first()).toBeVisible()
+
+  await expect
+    .poll(async () => {
+      const response = await request.get('/api/ai-usage/summary')
+      const summary = await response.json()
+      return summary.totalTokensAllTime
+    })
+    .toBeGreaterThan(beforeSummary.totalTokensAllTime)
+
+  await page.screenshot({ path: 'test-results/planner-poc-desktop.png', fullPage: true })
 })
 
 test('blocks mined counter moves while overview is open', async ({ page }) => {

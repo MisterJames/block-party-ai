@@ -25,7 +25,9 @@ export default defineConfig({
           outputUsdPerMillion: 2,
           cachedInputUsdPerMillion: 0.25
         }
-      })
+      }),
+      OPENAI_MODEL: 'test-planner-model',
+      PLANNER_POC_FAKE_AI: '1'
     },
     reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === '1',
     timeout: 120_000

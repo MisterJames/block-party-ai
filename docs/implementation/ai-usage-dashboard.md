@@ -15,8 +15,10 @@ This slice turns the AI usage strip from static mock values into a local, append
   * `GET /api/ai-usage/summary`
   * `GET /api/ai-usage/records?limit=50`
   * `POST /api/ai-usage/records`
+  * `POST /api/planner/freeform`
 * Dashboard AI cards now load token and estimated-cost summaries from the local usage log.
 * The AI panel shows current model, last planner call, usage store path, record health, and pricing-needed state.
+* `/planner` now includes a small free-form chat POC that makes one server-side OpenAI Responses API call and records its token usage.
 * Dashboard layout now stacks at mobile widths; wide data tables scroll inside their panels instead of forcing page-level horizontal overflow.
 * Planned crew rows are now honest placeholders: Maphew is the only active bot row, and the rest of the crew is marked planned until services exist.
 * Playwright uses `test-results/ai-usage-test.jsonl` so tests do not write to a contributor's real local usage log.
@@ -36,6 +38,22 @@ await recordAiUsage({
 ```
 
 Each stored record includes timestamp, model, purpose, token counts, estimated cost, and the pricing snapshot used for that estimate. Records are appended as JSONL and are not rewritten during summaries, builds, or Nuxt cleanup.
+
+## Planner POC
+
+The planner page is intentionally free-form for this slice. It posts user text to:
+
+```text
+POST /api/planner/freeform
+```
+
+The endpoint calls the OpenAI Responses API with `OPENAI_MODEL` or `gpt-5.2`, returns plain text, and records usage with purpose `planner_freeform_poc`. It does not create jobs, approve work, move bots, or change the Minecraft world.
+
+For tests and demos that must not spend API credits, set:
+
+```text
+PLANNER_POC_FAKE_AI=1
+```
 
 ## Pricing
 
@@ -82,12 +100,13 @@ Playwright captures:
 
 * `test-results/dashboard-overview-desktop.png`
 * `test-results/dashboard-overview-mobile.png`
+* `test-results/planner-poc-desktop.png`
 
 The test usage log is generated at `test-results/ai-usage-test.jsonl` and intentionally ignored.
 
 ## Deferred Work
 
-* Wire actual OpenAI planner calls through `recordAiUsage`.
 * Add a logs/settings view for detailed usage inspection and pricing configuration.
 * Add budget thresholds and warnings before expensive planner runs.
+* Replace the planner POC with structured job proposals and approval previews.
 * Move remaining overview panels from mock Pinia state to real dashboard service payloads as their systems come online.
