@@ -20,6 +20,8 @@ The Phase 3 Maphew site map slice is complete on `feature/maphew-site-map`. It a
 
 The Phase 4 crew coordination planning slice is complete on `feature/crew-coordination-planning`. It reshapes the roadmap around goals, reusable plans, jobs, steps, bot requests, templates, greenlight rules, and Snackwella before more real bot execution is added. See `docs/implementation/crew-coordination-planning.md`.
 
+Phase 7 is reserved for real non-digger bot implementation. Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination should become real Mineflayer adapters before diggers or destructive mining are implemented. See `docs/implementation/non-digger-bot-implementation.md`.
+
 ## Crew coordination lexicon
 
 Use these terms consistently across the dashboard, API, docs, and future bot code:
@@ -291,7 +293,7 @@ Example bots:
 
 This panel should make it obvious who is working, who is idle, who is stuck, and who needs help.
 
-For the first real bot milestone, Maphew can be the only connected bot while the rest of the crew appears as planned or placeholder rows.
+For the first real bot milestone, Maphew can be the only connected bot while the rest of the crew appears as planned or placeholder rows. Phase 6 should make the non-digger crew useful in simulated queues first. Phase 7 should then turn Snackwella, Chesterton, AnvilAnnie, and Blocko into real Mineflayer adapters while diggers remain planned.
 
 ### How we might approach this
 
@@ -316,6 +318,8 @@ Example:
     }
 
 The UI should not need direct Mineflayer access. It should render what the bot service publishes.
+
+For Phase 7, real non-digger bot adapters should publish the same status shape as simulated bots. They should expose queue state, current step, blockers, inventory summary, and recent announcements through the bot service rather than through direct UI access to Mineflayer.
 
 ## Cartographer status panel
 
@@ -366,6 +370,9 @@ Useful details:
 * Full inventory
 * Current pathfinding goal
 * Current job step
+* Assigned queue
+* Active job requests
+* Recent chat announcements
 * Recent bot logs
 * Known issues
 * Job history
@@ -389,6 +396,8 @@ Expose:
     POST /api/bots/:botName/return-to-base
 
 Keep manual controls limited at first. The bot detail page should inspect more than command.
+
+For real non-digger bots in Phase 7, the detail page should keep command controls narrow. It can show pause/resume/return-to-base when safe, but job acceptance, step execution, and greenlight enforcement should still flow through the coordination core.
 
 ## Activity feed
 
@@ -821,11 +830,12 @@ A sensible implementation order:
 12. Coordination core with job manager, bot queues, job requests, planner proposals, approvals, and greenlight enforcement
 13. Provisions, chests, tools, and safe setup workflows
 14. Bot detail pages with queues, current step, requests, inventory, and job history
-15. Digger crew and destructive approval gates
-16. Reusable AI plan authoring and AI-drafted template review
-17. Logs and settings pages
+15. Real non-digger bot adapters for Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination
+16. Digger crew and destructive approval gates
+17. Reusable AI plan authoring and AI-drafted template review
+18. Logs and settings pages
 
-This order lets the UI become useful before the full AI planner or destructive digger jobs exist, and it lets the crew request and satisfy food, tools, resources, and location context before larger builds.
+This order lets the UI become useful before the full AI planner or destructive digger jobs exist, lets the crew request and satisfy food, tools, resources, and location context before larger builds, and proves real non-digger bot adapters before destructive terrain work.
 
 ## Notes for contributors
 
