@@ -1,5 +1,5 @@
 <template>
-  <aside class="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-slate-800 bg-slate-950/96 px-4 py-4">
+  <aside class="flex w-full flex-col border-b border-slate-800 bg-slate-950/96 px-4 py-4 lg:fixed lg:inset-y-0 lg:left-0 lg:z-20 lg:w-64 lg:border-b-0 lg:border-r">
     <div class="flex items-center gap-3">
       <div class="grid size-10 shrink-0 place-items-center rounded-md border border-cyan-400/30 bg-slate-900/80 p-1">
         <img
@@ -20,7 +20,7 @@
       </div>
     </div>
 
-    <nav class="mt-6 space-y-1">
+    <nav class="mt-6 grid grid-cols-2 gap-1 sm:grid-cols-3 lg:block lg:space-y-1">
       <NuxtLink
         v-for="item in navItems"
         :key="item.to"
@@ -37,7 +37,7 @@
       </NuxtLink>
     </nav>
 
-    <div class="mt-auto space-y-4">
+    <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:mt-auto lg:block lg:space-y-4">
       <UButton
         color="error"
         variant="outline"

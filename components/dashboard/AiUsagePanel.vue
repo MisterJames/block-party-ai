@@ -1,6 +1,6 @@
 <template>
   <DashboardPanel body-class="p-0">
-    <div class="grid grid-cols-[250px_repeat(4,minmax(0,1fr))] divide-x divide-slate-700/70">
+    <div class="grid grid-cols-1 divide-y divide-slate-700/70 xl:grid-cols-[250px_repeat(4,minmax(0,1fr))] xl:divide-x xl:divide-y-0">
       <div class="flex items-center gap-3 px-5 py-4">
         <div class="flex size-12 items-center justify-center rounded-md bg-violet-500/10 text-violet-300">
           <UIcon name="i-lucide-brain-circuit" class="size-7" />
@@ -15,6 +15,19 @@
           <p class="mt-1 text-xs text-slate-400">
             Planner usage and costs
           </p>
+          <div class="mt-2 flex items-center gap-2">
+            <UBadge color="info" variant="subtle" size="sm">
+              Local JSONL
+            </UBadge>
+            <UBadge
+              v-if="summary?.unpricedRecords"
+              color="warning"
+              variant="subtle"
+              size="sm"
+            >
+              Pricing needed
+            </UBadge>
+          </div>
         </div>
       </div>
 
@@ -30,7 +43,7 @@
           <p class="mt-1 text-xl font-semibold leading-none text-slate-50">
             {{ metric.value }}
           </p>
-          <p :class="['mt-1 text-xs', metric.trend === 'up' ? 'text-emerald-300' : 'text-slate-400']">
+          <p :class="['mt-1 text-xs', helperColor(metric)]">
             {{ metric.helper }}
           </p>
         </div>
@@ -43,6 +56,35 @@
         </ClientOnly>
       </div>
     </div>
+
+    <div class="grid grid-cols-1 gap-3 border-t border-slate-800 px-5 py-3 text-xs sm:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))]">
+      <div class="min-w-0">
+        <p class="text-slate-500">Current Model</p>
+        <p class="mt-1 truncate font-medium text-slate-200">
+          {{ summary?.currentModel ?? 'Not recorded' }}
+        </p>
+      </div>
+      <div class="min-w-0">
+        <p class="text-slate-500">Last Planner Call</p>
+        <p class="mt-1 truncate font-medium text-slate-200">
+          {{ formatLastCall(summary?.lastCallAt) }}
+        </p>
+      </div>
+      <div class="min-w-0">
+        <p class="text-slate-500">Usage Store</p>
+        <UTooltip :text="storageTooltip">
+          <p class="mt-1 truncate font-medium text-slate-200">
+            {{ summary?.storage.path ?? 'state/ai-usage.jsonl' }}
+          </p>
+        </UTooltip>
+      </div>
+      <div class="min-w-0">
+        <p class="text-slate-500">Cost Display</p>
+        <p :class="['mt-1 truncate font-medium', error ? 'text-red-300' : 'text-slate-200']">
+          {{ displayCurrencyLabel }}
+        </p>
+      </div>
+    </div>
   </DashboardPanel>
 </template>
 
@@ -52,13 +94,76 @@ import { GridComponent, TooltipComponent } from 'echarts/components'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
-import type { SparklineMetric } from '~/types/dashboard'
+import type { AiUsageDashboardSummary, SparklineMetric } from '~/types/dashboard'
 
-defineProps<{
+const props = defineProps<{
   metrics: SparklineMetric[]
+  summary?: AiUsageDashboardSummary | null
+  error?: string
 }>()
 
 use([CanvasRenderer, LineChart, GridComponent, TooltipComponent])
+
+const storageTooltip = computed(() => {
+  if (!props.summary) {
+    return 'Usage records are stored outside Nuxt build output.'
+  }
+
+  return props.summary.storage.survivesNuxtCleanup
+    ? 'Append-only local file ignored by git and not touched by Nuxt cleanup.'
+    : 'Check storage configuration before relying on this path.'
+})
+
+const healthLabel = computed(() => {
+  if (props.error) {
+    return 'Usage API unavailable'
+  }
+
+  if (!props.summary) {
+    return 'Loading usage summary'
+  }
+
+  if (props.summary.skippedLines > 0) {
+    return `${props.summary.skippedLines} malformed records skipped`
+  }
+
+  return `${props.summary.recordsTotal} records loaded`
+})
+
+const displayCurrencyLabel = computed(() => {
+  if (!props.summary) {
+    return 'Loading currency'
+  }
+
+  if (props.summary.displayCurrency.converted) {
+    return `USD x ${props.summary.displayCurrency.rateFromUsd} -> ${props.summary.displayCurrency.code}`
+  }
+
+  if (props.summary.displayCurrency.source.startsWith('missing-rate:')) {
+    return `${props.summary.displayCurrency.source.replace('missing-rate:', '')} rate missing`
+  }
+
+  return 'USD recorded pricing'
+})
+
+function helperColor(metric: SparklineMetric) {
+  if (metric.tone === 'warning') return 'text-amber-300'
+  if (metric.tone === 'success' || metric.trend === 'up') return 'text-emerald-300'
+  return 'text-slate-400'
+}
+
+function formatLastCall(timestamp?: string | null) {
+  if (!timestamp) {
+    return 'No calls recorded'
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  }).format(new Date(timestamp))
+}
 
 function sparklineOption(metric: SparklineMetric) {
   return {

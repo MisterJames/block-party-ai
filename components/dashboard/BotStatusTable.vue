@@ -6,8 +6,8 @@
       </UTooltip>
     </template>
 
-    <div class="overflow-hidden">
-      <table class="w-full table-fixed text-left text-xs">
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[900px] table-fixed text-left text-xs">
         <thead class="border-b border-slate-700/70 text-slate-400">
           <tr>
             <th class="w-[28%] px-4 py-2 font-medium">Bot</th>
@@ -67,8 +67,8 @@
           </tr>
         </tbody>
       </table>
-      <div class="flex items-center justify-between border-t border-slate-800 px-4 py-2 text-xs">
-        <span class="text-emerald-300">6 of 7 bots online</span>
+      <div class="flex min-w-[900px] items-center justify-between border-t border-slate-800 px-4 py-2 text-xs">
+        <span class="text-amber-300">1 of 7 bots active; remaining crew planned</span>
         <UButton label="View All Bots" to="/bots" color="neutral" variant="soft" size="xs" />
       </div>
     </div>

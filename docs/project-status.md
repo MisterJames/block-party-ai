@@ -6,6 +6,7 @@ This page is the lightweight completion index for the repo. Update it when a tas
 
 | Slice | State | Branch | Notes |
 | --- | --- | --- | --- |
+| Phase 1 AI usage dashboard and planner POC | Complete | `feature/ai-usage-dashboard` | See `docs/implementation/ai-usage-dashboard.md`. |
 | Phase 0 dashboard scaffold | Complete | `codex/dashboard-scaffold` | See `docs/implementation/dashboard-scaffold.md`. |
 | Builder head site icon | Complete | `feature/site-icon-builder-head` | See `docs/implementation/site-icon-builder-head.md`. |
 
@@ -13,6 +14,7 @@ This page is the lightweight completion index for the repo. Update it when a tas
 
 * `docs/design/block-party-ui-guidelines.md` - dashboard visual and component rules.
 * `docs/design/references/block-party-ai-dashboard-panels.md` - intended dashboard panels and future backend/API shape.
+* `docs/implementation/ai-usage-dashboard.md` - completed Phase 1 AI usage persistence, endpoints, dashboard wiring, and pricing notes.
 * `docs/implementation/dashboard-scaffold.md` - completed Phase 0 scaffold details, verification, and follow-ups.
 * `docs/implementation/site-icon-builder-head.md` - generated builder-head logo and favicon asset notes.
 
