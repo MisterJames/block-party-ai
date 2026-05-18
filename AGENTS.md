@@ -26,6 +26,23 @@ Use `docs/design/references/dashboard-overview-ai-usage.png` as a strong visual 
 - Keep commits reviewable and focused. Do not mix unrelated refactors, formatting churn, or drive-by cleanup into feature commits.
 - If the worktree already has user changes, preserve them and work around them. Never revert unrelated changes without explicit permission.
 
+## Crew Coordination Roadmap
+
+- Current roadmap priority is coordination before more destructive or specialized bot work.
+- Treat Phase 4 as a docs/design phase for goals, reusable plans, jobs, steps, bot requests, templates, greenlight rules, and capability boundaries.
+- Treat Phase 5 as the first implementation of the coordination core: job manager, queues, requests, planner proposals, approvals, and greenlight enforcement.
+- Snackwella is part of the named crew as the Provisions / Farming bot. Include her in future crew planning alongside Maphew, Chesterton, AnvilAnnie, Blocko, SpruceLee, CaptainCobble, and Doug.
+- Use this lexicon consistently:
+  - Goal: desired outcome.
+  - Plan: reusable collection of jobs that fulfills a goal.
+  - Job: assignable unit of work for one bot.
+  - Step: smallest tracked action inside a job.
+  - Job Request: bot-originated request for help, resources, location info, tools, food, or planner support.
+  - Job Template: reusable approved job shape such as `craft_item`, `fetch_item`, `survey_area`, `stock_chest`, or `place_blocks`.
+  - Greenlight Rule: human-configured approval policy allowing a template or plan to run without repeated approval inside defined limits.
+- Bots may request help or planner support when blocked, but they should not invent major goals such as "build a foundry" on their own.
+- Minecraft chat is the fun visible layer for announcements; structured local state is authoritative.
+
 ## Verification
 
 After meaningful frontend changes, run the app and verify the UI with screenshots at desktop and mobile widths. Check dark mode, compact density, text overflow, responsive fit, placeholder states, and obvious visual regressions before finalizing.
