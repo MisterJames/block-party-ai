@@ -12,6 +12,8 @@ The Phase 0 dashboard scaffold is complete on `codex/dashboard-scaffold`. It imp
 
 See `docs/implementation/dashboard-scaffold.md` for the completed scaffold notes, verification commands, known warnings, and deferred integrations. See `docs/project-status.md` for the repo-level completion index.
 
+The Phase 1 AI usage dashboard slice is complete on `feature/ai-usage-dashboard`. It adds append-only local JSONL records, token/cost summary endpoints, dashboard AI usage summaries, and honest planned-crew placeholders while keeping the rest of the overview placeholder-backed. See `docs/implementation/ai-usage-dashboard.md`.
+
 ## Overall dashboard layout
 
 The main dashboard can be organized into a few stable regions:

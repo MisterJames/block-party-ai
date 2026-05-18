@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import type { ActivityEvent, BotRow, DashboardMetric, HealthStat, JobRow, SparklineMetric, WorldSummary } from '~/types/dashboard'
+import { $fetch } from 'ofetch'
+import type { ActivityEvent, AiUsageDashboardSummary, BotRow, DashboardMetric, HealthStat, JobRow, SparklineMetric, WorldSummary } from '~/types/dashboard'
 
 const lowThousandsStart = 1800
 
@@ -8,6 +9,8 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const hasRandomizedBlocks = ref(false)
   const liveTimer = ref<ReturnType<typeof setInterval> | null>(null)
   const startedAt = ref(Date.now() - 2 * 60 * 60 * 1000 - 17 * 60 * 1000)
+  const aiUsageSummary = ref<AiUsageDashboardSummary | null>(null)
+  const aiUsageError = ref('')
 
   const bots = ref<BotRow[]>([
     {
@@ -28,52 +31,52 @@ export const useDashboardStore = defineStore('dashboard', () => {
       name: 'CaptainCobble',
       role: 'Digger Leader',
       avatar: 'C',
-      status: 'Working',
-      statusTone: 'green',
-      currentJob: 'Clearing tunnel section',
-      jobDetail: '91, 54, -245 to 91, 54, -215',
-      location: '91, 54, -230',
-      tool: 'Iron pickaxe',
-      inventoryPercent: 64
+      status: 'Planned',
+      statusTone: 'neutral',
+      currentJob: 'Placeholder crew role',
+      jobDetail: 'Digger orchestration planned',
+      location: 'Not connected',
+      tool: 'Pending',
+      inventoryPercent: null
     },
     {
       id: 'doug',
       name: 'Doug',
       role: 'Digger Worker',
       avatar: 'D',
-      status: 'Going To',
-      statusTone: 'blue',
-      currentJob: 'Following leader',
-      jobDetail: 'checkpoint sync',
-      location: '89, 54, -230',
-      tool: 'Stone pickaxe',
-      inventoryPercent: 61
+      status: 'Planned',
+      statusTone: 'neutral',
+      currentJob: 'Placeholder crew role',
+      jobDetail: 'Worker dig jobs planned',
+      location: 'Not connected',
+      tool: 'Pending',
+      inventoryPercent: null
     },
     {
       id: 'anvilannie',
       name: 'AnvilAnnie',
       role: 'Blacksmith',
       avatar: 'A',
-      status: 'Working',
-      statusTone: 'green',
-      currentJob: 'Smelting iron ore',
-      jobDetail: 'furnace array',
-      location: 'Base Camp',
-      tool: 'Furnace',
-      inventoryPercent: 47
+      status: 'Planned',
+      statusTone: 'neutral',
+      currentJob: 'Placeholder crew role',
+      jobDetail: 'Tool crafting planned',
+      location: 'Not connected',
+      tool: 'Pending',
+      inventoryPercent: null
     },
     {
       id: 'chesterton',
       name: 'Chesterton',
       role: 'Stocker',
       avatar: 'H',
-      status: 'Working',
-      statusTone: 'green',
-      currentJob: 'Restocking build chest',
-      jobDetail: 'Stone -> Build Chest',
-      location: 'Storage Room',
-      tool: 'Chest',
-      inventoryPercent: 72
+      status: 'Planned',
+      statusTone: 'neutral',
+      currentJob: 'Placeholder crew role',
+      jobDetail: 'Chest logistics planned',
+      location: 'Not connected',
+      tool: 'Pending',
+      inventoryPercent: null
     },
     {
       id: 'sprucelee',
@@ -81,24 +84,24 @@ export const useDashboardStore = defineStore('dashboard', () => {
       role: 'Gatherer',
       avatar: 'S',
       status: 'Planned',
-      statusTone: 'amber',
-      currentJob: 'Gathering oak logs',
-      jobDetail: 'dark oak forest',
-      location: '234, 64, 512',
-      tool: 'Axe',
-      inventoryPercent: 38
+      statusTone: 'neutral',
+      currentJob: 'Placeholder crew role',
+      jobDetail: 'Resource gathering planned',
+      location: 'Not connected',
+      tool: 'Pending',
+      inventoryPercent: null
     },
     {
       id: 'blocko',
       name: 'Blocko',
       role: 'Builder',
       avatar: 'B',
-      status: 'Paused',
+      status: 'Planned',
       statusTone: 'neutral',
-      currentJob: 'Paused by user',
-      jobDetail: 'awaiting build plan',
-      location: 'Workshop',
-      tool: 'Blocks',
+      currentJob: 'Placeholder crew role',
+      jobDetail: 'Builder jobs planned',
+      location: 'Not connected',
+      tool: 'Pending',
       inventoryPercent: null
     }
   ])
@@ -115,53 +118,53 @@ export const useDashboardStore = defineStore('dashboard', () => {
       approval: 'Not required'
     },
     {
-      id: 'clear-tunnel-003',
-      label: 'Clearing tunnel section',
+      id: 'clear-tunnel-placeholder',
+      label: 'Tunnel clearing crew',
       icon: 'i-lucide-pickaxe',
-      detail: '91, 54, -245 to 91, 54, -215',
+      detail: 'Placeholder until digger services exist',
       assigned: 'CaptainCobble',
-      progress: 63,
-      status: 'Running',
-      approval: 'Approved'
+      progress: 0,
+      status: 'Waiting',
+      approval: 'Pending'
     },
     {
-      id: 'follow-leader-002',
-      label: 'Following leader',
+      id: 'follow-leader-placeholder',
+      label: 'Digger worker sync',
       icon: 'i-lucide-route',
-      detail: '89, 54, -215 to checkpoint',
+      detail: 'Placeholder until digger services exist',
       assigned: 'Doug',
-      progress: 63,
-      status: 'Running',
+      progress: 0,
+      status: 'Waiting',
       approval: 'Not required'
     },
     {
-      id: 'smelt-tools-001',
-      label: 'Smelting iron ore',
+      id: 'smelt-tools-placeholder',
+      label: 'Tool crafting',
       icon: 'i-lucide-flame',
-      detail: 'furnace array',
+      detail: 'Placeholder until blacksmith service exists',
       assigned: 'AnvilAnnie',
-      progress: 41,
-      status: 'Running',
+      progress: 0,
+      status: 'Waiting',
       approval: 'Not required'
     },
     {
-      id: 'restock-build-001',
+      id: 'restock-build-placeholder',
       label: 'Restock build chest',
       icon: 'i-lucide-package',
-      detail: 'Stone -> Build Chest',
+      detail: 'Placeholder until stocker service exists',
       assigned: 'Chesterton',
-      progress: 28,
-      status: 'Running',
+      progress: 0,
+      status: 'Waiting',
       approval: 'Not required'
     },
     {
-      id: 'gather-oak-001',
-      label: 'Gathering oak logs',
+      id: 'gather-oak-placeholder',
+      label: 'Resource gathering',
       icon: 'i-lucide-tree-pine',
-      detail: 'dark oak forest',
+      detail: 'Placeholder until gatherer service exists',
       assigned: 'SpruceLee',
       progress: 0,
-      status: 'Queued',
+      status: 'Waiting',
       approval: 'Pending'
     }
   ])
@@ -177,43 +180,43 @@ export const useDashboardStore = defineStore('dashboard', () => {
     },
     {
       id: 'evt-2',
-      title: 'CaptainCobble started job',
-      message: 'Clearing tunnel section',
+      title: 'AI usage logging ready',
+      message: 'Appending records to state/ai-usage.jsonl',
       time: '10:41 AM',
-      severity: 'info',
-      icon: 'i-lucide-pickaxe'
+      severity: 'success',
+      icon: 'i-lucide-receipt-text'
     },
     {
       id: 'evt-3',
-      title: 'Doug reached checkpoint',
-      message: 'Following leader',
+      title: 'Crew placeholders staged',
+      message: 'Non-Maphew bots are planned, not connected',
       time: '10:41 AM',
-      severity: 'success',
-      icon: 'i-lucide-route'
+      severity: 'info',
+      icon: 'i-lucide-bot'
     },
     {
       id: 'evt-4',
-      title: 'AnvilAnnie crafted',
-      message: 'Iron Pickaxe x 1',
+      title: 'Pricing configuration pending',
+      message: 'Set AI_USAGE_PRICES_JSON for cost estimates',
       time: '10:40 AM',
-      severity: 'info',
-      icon: 'i-lucide-anvil'
+      severity: 'warning',
+      icon: 'i-lucide-circle-dollar-sign'
     },
     {
       id: 'evt-5',
-      title: 'Chesterton moved items',
-      message: '64x Cobblestone -> Build Chest',
+      title: 'Dashboard remains placeholder-backed',
+      message: 'Jobs, world, and inventory await services',
       time: '10:39 AM',
-      severity: 'success',
-      icon: 'i-lucide-box'
+      severity: 'info',
+      icon: 'i-lucide-layout-dashboard'
     },
     {
       id: 'evt-6',
-      title: 'Blocko paused',
-      message: 'Paused by user',
+      title: 'Build safety reminder',
+      message: 'Destructive jobs still require future approvals',
       time: '10:35 AM',
       severity: 'warning',
-      icon: 'i-lucide-pause-circle'
+      icon: 'i-lucide-shield-alert'
     }
   ])
 
@@ -221,45 +224,45 @@ export const useDashboardStore = defineStore('dashboard', () => {
     {
       id: 'tokens-today',
       label: 'API Tokens Today',
-      value: '842,316',
-      helper: '+12.4% vs yesterday',
-      trend: 'up',
+      value: '0',
+      helper: 'No calls today',
+      trend: 'neutral',
       color: '#4ade80',
-      data: [18, 24, 21, 34, 29, 37, 33, 42, 39, 48, 45, 52]
+      data: Array.from({ length: 12 }, () => 0)
     },
     {
       id: 'world-tokens',
       label: 'World Total Tokens',
-      value: '12,845,721',
-      helper: 'All time',
+      value: '0',
+      helper: 'No records yet',
       trend: 'steady',
-      color: '#a78bfa',
-      data: [18, 19, 23, 22, 28, 31, 27, 30, 34, 33, 36, 35]
+      color: '#38bdf8',
+      data: Array.from({ length: 12 }, () => 0)
     },
     {
       id: 'cost-today',
       label: 'AI Cost Today',
-      value: '$1.87',
-      helper: '+8.7% vs yesterday',
-      trend: 'up',
-      color: '#4ade80',
-      data: [12, 16, 14, 21, 17, 19, 24, 20, 23, 28, 25, 27]
+      value: '$0.00',
+      helper: 'Configure pricing before calls',
+      trend: 'neutral',
+      color: '#fbbf24',
+      data: Array.from({ length: 12 }, () => 0)
     },
     {
       id: 'world-cost',
       label: 'World Total Cost',
-      value: '$37.42',
+      value: '$0.00',
       helper: 'All time',
       trend: 'steady',
       color: '#a78bfa',
-      data: [13, 15, 14, 17, 19, 18, 22, 23, 25, 23, 24, 25]
+      data: Array.from({ length: 12 }, () => 0)
     }
   ])
 
   const healthStats = ref<HealthStat[]>([
     { label: 'Server', value: 'Online', tone: 'green' },
-    { label: 'Bots', value: '6 / 7', tone: 'green' },
-    { label: 'Jobs', value: '5 Running', tone: 'green' },
+    { label: 'Bots', value: '1 / 7', tone: 'amber' },
+    { label: 'Jobs', value: '1 Running', tone: 'blue' },
     { label: 'CPU', value: '18%', tone: 'neutral', percent: 18 },
     { label: 'Memory', value: '42%', tone: 'neutral', percent: 42 }
   ])
@@ -284,16 +287,16 @@ export const useDashboardStore = defineStore('dashboard', () => {
     {
       id: 'bots-online',
       label: 'Bots Online',
-      value: '6 / 7',
-      helper: 'Maphew connected',
+      value: '1 / 7',
+      helper: 'Maphew active; crew planned',
       icon: 'i-lucide-bot',
       accent: 'green'
     },
     {
       id: 'active-jobs',
       label: 'Active Jobs',
-      value: '5',
-      helper: '1 queued',
+      value: '1',
+      helper: '5 placeholders',
       icon: 'i-lucide-clipboard-list',
       accent: 'blue'
     },
@@ -327,9 +330,21 @@ export const useDashboardStore = defineStore('dashboard', () => {
     'Block Party AI v0.1.0-alpha.1',
     'Mineflayer 4.x',
     'Node 20.x',
-    'OpenAI API placeholder',
+    aiUsageSummary.value ? `AI usage ${aiUsageSummary.value.storage.path}` : 'AI usage loading',
     'America/Winnipeg'
   ])
+
+  async function refreshAiUsage() {
+    try {
+      const summary = await $fetch<AiUsageDashboardSummary>('/api/ai-usage/summary')
+
+      aiUsage.value = summary.metrics
+      aiUsageSummary.value = summary
+      aiUsageError.value = ''
+    } catch (error) {
+      aiUsageError.value = error instanceof Error ? error.message : 'Unable to load AI usage'
+    }
+  }
 
   function startLiveCounters() {
     if (!import.meta.client || liveTimer.value) {
@@ -358,12 +373,15 @@ export const useDashboardStore = defineStore('dashboard', () => {
   return {
     activeJobs,
     aiUsage,
+    aiUsageError,
+    aiUsageSummary,
     bots,
     events,
     footerDiagnostics,
     healthStats,
     metrics,
     worldSummary,
+    refreshAiUsage,
     startLiveCounters,
     stopLiveCounters
   }

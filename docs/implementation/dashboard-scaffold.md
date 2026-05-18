@@ -4,14 +4,18 @@
 
 Complete on branch `codex/dashboard-scaffold`.
 
-This slice builds the browsable Phase 0 dashboard overview. It is intentionally placeholder-backed: no bot runtime, Mineflayer connection, backend API, image generation, persistent AI usage logging, OpenAI calls, or WebSocket updates are wired in.
+This slice built the browsable Phase 0 dashboard overview. It began as intentionally placeholder-backed: no bot runtime, Mineflayer connection, backend API, image generation, persistent AI usage logging, OpenAI calls, or WebSocket updates were wired in.
+
+Phase 1 has since added persistent AI usage logging and dashboard summaries. See `docs/implementation/ai-usage-dashboard.md` for the current AI usage implementation.
 
 ## What is implemented
 
 * Nuxt 3 app scaffold with Nuxt UI, Pinia, TypeScript, pnpm, and dark-mode defaults.
 * Desktop-first dashboard shell at `/` with fixed sidebar, top status cards, AI usage strip, bot table, activity feed, active jobs table, SVG world overview, and footer diagnostics.
+* The overview has since gained responsive stacking for narrow viewports as part of the AI usage slice.
 * Placeholder routes for `/bots`, `/jobs`, `/planner`, `/world`, `/chests`, `/projects`, `/logs`, and `/settings`.
-* Pinia mock dashboard store with typed bot, job, event, AI usage, health, world, and diagnostics data.
+* Pinia mock dashboard store with typed bot, job, event, health, world, and diagnostics data.
+* AI usage metrics now refresh from the local usage summary API, with zeroed fallback data if the API is unavailable.
 * Live placeholder `blocksMined` counter initialized in the low thousands and incremented while the overview is open.
 * Vue ECharts sparklines for mocked AI usage and cost panels.
 * Custom SVG world overview panel with pixel-map styling, route overlays, landmarks, hazards, and survey summary.
@@ -66,7 +70,7 @@ Playwright's configured web server already runs `corepack pnpm exec nuxt cleanup
 
 * Replace mock Pinia data with dashboard API payloads.
 * Add real bot service health and status.
-* Add real AI usage logging and cost aggregation.
+* Wire real planner calls through the completed AI usage recorder.
 * Add Maphew cartography persistence and generated map data.
 * Add real-time updates with WebSockets or server-sent events after a backend service exists.
 * Add focused detail pages behind the placeholder routes.

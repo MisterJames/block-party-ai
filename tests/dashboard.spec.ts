@@ -22,6 +22,8 @@ test('overview renders the desktop dashboard shell', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Dashboard Overview' })).toBeVisible()
   await expect(page.getByText('Block Party AI', { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'AI Usage' })).toBeVisible()
+  await expect(page.getByText('Local JSONL')).toBeVisible()
+  await expect(page.getByText('test-results/ai-usage-test.jsonl', { exact: true })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Bots' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Activity Feed' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Active Jobs' })).toBeVisible()
@@ -33,6 +35,33 @@ test('overview renders the desktop dashboard shell', async ({ page }) => {
   expect(bodyBackground).toMatch(/^(oklch\(0\.129|rgb\(2, 6, 23\))/)
 
   await page.screenshot({ path: 'test-results/dashboard-overview-desktop.png', fullPage: true })
+})
+
+test('AI usage records are appended and summarized', async ({ request, page }) => {
+  const response = await request.post('/api/ai-usage/records', {
+    data: {
+      model: 'test-planner-model',
+      purpose: 'plan_spawn_survey',
+      inputTokens: 1200,
+      cachedInputTokens: 200,
+      outputTokens: 300
+    }
+  })
+
+  expect(response.ok()).toBeTruthy()
+
+  const summaryResponse = await request.get('/api/ai-usage/summary')
+  const summary = await summaryResponse.json()
+
+  expect(summary.totalTokensAllTime).toBeGreaterThanOrEqual(1500)
+  expect(summary.totalCostAllTimeUsd).not.toBeNull()
+  expect(summary.storage.gitIgnored).toBe(true)
+  expect(summary.storage.survivesNuxtCleanup).toBe(true)
+
+  await page.goto('/')
+  await expect(page.getByText('test-planner-model')).toBeVisible()
+  await expect(page.getByText('plan_spawn_survey')).not.toBeVisible()
+  await expect(page.getByText(/records loaded/)).toBeVisible()
 })
 
 test('blocks mined counter moves while overview is open', async ({ page }) => {
@@ -68,4 +97,19 @@ test('narrow desktop viewport keeps primary shell visible', async ({ page }) => 
   await expect(page.getByRole('heading', { name: 'Dashboard Overview' })).toBeVisible()
   await expect(page.getByRole('navigation')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'AI Usage' })).toBeVisible()
+})
+
+test('mobile viewport stacks dashboard without page overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 })
+  await page.goto('/')
+
+  await expect(page.getByRole('heading', { name: 'Dashboard Overview' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'AI Usage' })).toBeVisible()
+  await expect(page.getByText('Local JSONL')).toBeVisible()
+
+  const scrollWidth = await page.locator('body').evaluate(() => document.documentElement.scrollWidth)
+  const viewportWidth = await page.locator('body').evaluate(() => document.documentElement.clientWidth)
+  expect(scrollWidth).toBeLessThanOrEqual(viewportWidth + 1)
+
+  await page.screenshot({ path: 'test-results/dashboard-overview-mobile.png', fullPage: true })
 })

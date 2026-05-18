@@ -4,7 +4,8 @@
       <UButton label="View All Jobs" to="/jobs" color="neutral" variant="soft" size="xs" />
     </template>
 
-    <table class="w-full table-fixed text-left text-xs">
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[760px] table-fixed text-left text-xs">
       <thead class="border-b border-slate-700/70 text-slate-400">
         <tr>
           <th class="w-[38%] px-4 py-2 font-medium">Job</th>
@@ -37,7 +38,7 @@
             </div>
           </td>
           <td class="px-3 py-2.5">
-            <UBadge :color="job.status === 'Queued' ? 'info' : 'success'" variant="subtle" size="sm">
+            <UBadge :color="statusColor(job.status)" variant="subtle" size="sm">
               {{ job.status }}
             </UBadge>
           </td>
@@ -48,7 +49,8 @@
           </td>
         </tr>
       </tbody>
-    </table>
+      </table>
+    </div>
   </DashboardPanel>
 </template>
 
@@ -58,4 +60,12 @@ import type { JobRow } from '~/types/dashboard'
 defineProps<{
   jobs: JobRow[]
 }>()
+
+function statusColor(status: JobRow['status']) {
+  return {
+    Running: 'success',
+    Queued: 'info',
+    Waiting: 'neutral'
+  }[status] as 'success' | 'info' | 'neutral'
+}
 </script>

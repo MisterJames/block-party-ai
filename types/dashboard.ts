@@ -1,6 +1,6 @@
 export type Severity = 'info' | 'success' | 'warning' | 'danger'
 
-export type BotStatus = 'Working' | 'Surveying' | 'Going To' | 'Paused' | 'Planned' | 'Waiting'
+export type BotStatus = 'Working' | 'Surveying' | 'Going To' | 'Paused' | 'Planned' | 'Waiting' | 'Offline'
 
 export interface DashboardMetric {
   id: string
@@ -19,6 +19,7 @@ export interface SparklineMetric {
   trend: string
   color: string
   data: number[]
+  tone?: 'neutral' | 'success' | 'warning'
 }
 
 export interface BotRow {
@@ -69,4 +70,58 @@ export interface WorldSummary {
   hazards: number
   landmarks: number
   walkablePercent: number
+}
+
+export interface AiUsagePricingSnapshot {
+  inputUsdPerMillion: number | null
+  outputUsdPerMillion: number | null
+  cachedInputUsdPerMillion?: number | null
+  currency: 'USD'
+  source: string
+}
+
+export interface AiUsageRecord {
+  id: string
+  timestamp: string
+  provider: 'openai'
+  model: string
+  purpose: string
+  projectId: string
+  worldId: string
+  inputTokens: number
+  cachedInputTokens: number
+  outputTokens: number
+  totalTokens: number
+  estimatedCostUsd: number | null
+  pricing: AiUsagePricingSnapshot
+}
+
+export interface AiUsageRecordPreview {
+  id: string
+  timestamp: string
+  model: string
+  purpose: string
+  totalTokens: number
+  estimatedCostUsd: number | null
+}
+
+export interface AiUsageDashboardSummary {
+  metrics: SparklineMetric[]
+  currentModel: string
+  lastCallAt: string | null
+  recordsToday: number
+  recordsTotal: number
+  totalTokensToday: number
+  totalTokensAllTime: number
+  totalCostTodayUsd: number | null
+  totalCostAllTimeUsd: number | null
+  unpricedRecords: number
+  skippedLines: number
+  recentRecords: AiUsageRecordPreview[]
+  storage: {
+    path: string
+    gitIgnored: boolean
+    appendOnly: boolean
+    survivesNuxtCleanup: boolean
+  }
 }
