@@ -6,6 +6,12 @@ The dashboard should feel like a practical control room for a tiny Minecraft con
 
 For visual and component guidance, read `docs/design/block-party-ui-guidelines.md` before implementing UI. Use Nuxt with Nuxt UI in dark mode by default, with compact dashboard typography and the existing dashboard mockup as a strong visual target rather than a pixel-perfect requirement.
 
+## Current implementation status
+
+The Phase 0 dashboard scaffold is complete on `codex/dashboard-scaffold`. It implements the overview shell, placeholder routes, mock Pinia state, live blocks-mined counter, ECharts AI usage sparklines, custom SVG world overview, and Playwright smoke tests.
+
+See `docs/implementation/dashboard-scaffold.md` for the completed scaffold notes, verification commands, known warnings, and deferred integrations. See `docs/project-status.md` for the repo-level completion index.
+
 ## Overall dashboard layout
 
 The main dashboard can be organized into a few stable regions:

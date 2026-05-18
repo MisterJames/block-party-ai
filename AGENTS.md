@@ -29,3 +29,11 @@ Use `docs/design/references/dashboard-overview-ai-usage.png` as a strong visual 
 ## Verification
 
 After meaningful frontend changes, run the app and verify the UI with screenshots at desktop and mobile widths. Check dark mode, compact density, text overflow, responsive fit, placeholder states, and obvious visual regressions before finalizing.
+
+## Documentation Completion
+
+- At the end of each completed task, update the relevant docs to reflect the current completion state, not just the intended plan.
+- Add or update links to any new implementation notes, screenshots, verification artifacts, routes, commands, or follow-up docs that help the next agent understand what changed.
+- If a task changes architecture, workflow, dependencies, UI behavior, setup, verification, or known limitations, add a short note in the appropriate docs before finalizing.
+- Keep docs honest about placeholder state. Mark mock data, deferred integrations, known warnings, and future work clearly.
+- Include doc updates in the same feature branch and commit as the implementation whenever practical. If the docs update is discovered after the implementation commit, make a focused follow-up docs commit.
