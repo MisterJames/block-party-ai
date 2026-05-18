@@ -20,7 +20,7 @@ Use `docs/design/references/dashboard-overview-ai-usage.png` as a strong visual 
 ## Work Planning and Git Flow
 
 - Before implementing non-trivial work, create a short plan with logical slices.
-- Move to a feature branch that represents the work before editing. Use the `codex/` prefix unless the user asks for another branch name.
+- Move to a feature branch that represents the work before editing. Use the `feature/` prefix unless the user asks for another branch name.
 - Build and verify one logical slice at a time.
 - Commit after each completed slice with a clear message. Do not over-split tiny changes; a one-slice change can be one commit.
 - Keep commits reviewable and focused. Do not mix unrelated refactors, formatting churn, or drive-by cleanup into feature commits.
