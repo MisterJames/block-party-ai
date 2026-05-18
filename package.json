@@ -23,6 +23,7 @@
   "devDependencies": {
     "@iconify-json/lucide": "^1.2.108",
     "@playwright/test": "latest",
+    "@types/node": "^25.9.0",
     "oxc-parser": "0.131.0",
     "typescript": "5.9.3",
     "vue-tsc": "latest"

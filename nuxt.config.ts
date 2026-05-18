@@ -21,7 +21,7 @@ export default defineNuxtConfig({
   build: {
     transpile: ['vue-echarts']
   },
-  devtools: { enabled: true },
+  devtools: { enabled: false },
   typescript: {
     typeCheck: true
   }
