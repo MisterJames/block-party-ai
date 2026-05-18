@@ -1,8 +1,14 @@
 <template>
   <aside class="fixed inset-y-0 left-0 z-20 flex w-64 flex-col border-r border-slate-800 bg-slate-950/96 px-4 py-4">
     <div class="flex items-center gap-3">
-      <div class="grid size-10 place-items-center rounded-md border border-cyan-400/30 bg-cyan-400/10 text-sm font-bold text-cyan-200">
-        BP
+      <div class="grid size-10 shrink-0 place-items-center rounded-md border border-cyan-400/30 bg-slate-900/80 p-1">
+        <img
+          src="/brand/builder-head-logo.png"
+          alt="Block Party AI builder head"
+          class="size-full object-contain"
+          width="32"
+          height="32"
+        >
       </div>
       <div>
         <p class="text-sm font-semibold uppercase tracking-[0.16em] text-slate-100">

@@ -10,6 +10,25 @@ export default defineNuxtConfig({
           name: 'viewport',
           content: 'width=device-width, initial-scale=1'
         }
+      ],
+      link: [
+        {
+          rel: 'icon',
+          type: 'image/png',
+          sizes: '32x32',
+          href: '/brand/favicon-32x32.png'
+        },
+        {
+          rel: 'icon',
+          type: 'image/png',
+          sizes: '48x48',
+          href: '/brand/favicon-48x48.png'
+        },
+        {
+          rel: 'apple-touch-icon',
+          sizes: '180x180',
+          href: '/brand/apple-touch-icon.png'
+        }
       ]
     }
   },
