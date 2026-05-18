@@ -14,7 +14,7 @@ export default defineConfig({
     screenshot: 'only-on-failure'
   },
   webServer: {
-    command: 'corepack pnpm dev --host 127.0.0.1 --port 3000',
+    command: 'corepack pnpm exec nuxt cleanup && corepack pnpm dev --host 127.0.0.1 --port 3000',
     url: 'http://127.0.0.1:3000',
     env: {
       NUXT_IGNORE_LOCK: '1'

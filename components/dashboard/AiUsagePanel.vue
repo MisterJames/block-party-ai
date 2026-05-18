@@ -47,12 +47,18 @@
 </template>
 
 <script setup lang="ts">
+import { LineChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent } from 'echarts/components'
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
 import VChart from 'vue-echarts'
 import type { SparklineMetric } from '~/types/dashboard'
 
 defineProps<{
   metrics: SparklineMetric[]
 }>()
+
+use([CanvasRenderer, LineChart, GridComponent, TooltipComponent])
 
 function sparklineOption(metric: SparklineMetric) {
   return {

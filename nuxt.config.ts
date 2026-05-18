@@ -2,6 +2,10 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-05-18',
   modules: ['@nuxt/ui', '@pinia/nuxt'],
   css: ['~/assets/css/main.css'],
+  sourcemap: {
+    client: false,
+    server: false
+  },
   app: {
     head: {
       title: 'Block Party AI',
@@ -39,6 +43,32 @@ export default defineNuxtConfig({
   },
   build: {
     transpile: ['vue-echarts']
+  },
+  vite: {
+    build: {
+      sourcemap: false,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('echarts') || id.includes('zrender') || id.includes('vue-echarts')) {
+              return 'charts'
+            }
+
+            if (
+              id.includes('@nuxt/ui') ||
+              id.includes('@nuxt/icon') ||
+              id.includes('@iconify') ||
+              id.includes('reka-ui') ||
+              id.includes('@floating-ui') ||
+              id.includes('@vueuse') ||
+              id.includes('vaul-vue')
+            ) {
+              return 'ui-vendor'
+            }
+          }
+        }
+      }
+    }
   },
   devtools: { enabled: false },
   typescript: {
