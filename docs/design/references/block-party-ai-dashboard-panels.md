@@ -16,6 +16,8 @@ The Phase 1 AI usage dashboard slice is complete on `feature/ai-usage-dashboard`
 
 The Phase 2 Maphew connection and survey data slice is complete on `feature/maphew-survey-data`. It adds explicit local server controls, Maphew connection/survey APIs, JSONL survey persistence, and real dashboard status summaries. The full rendered survey map remains Phase 3 work. See `docs/implementation/maphew-survey-data.md`.
 
+The Phase 3 Maphew site map slice is complete on `feature/maphew-site-map`. It adds `GET /api/world/survey-map`, a pixelated canvas survey map on `/world`, grouped findings for hazards/landmarks/surface blocks/errors, and hover/click-to-pin inspection. See `docs/implementation/maphew-site-map.md`.
+
 ## Overall dashboard layout
 
 The main dashboard can be organized into a few stable regions:
