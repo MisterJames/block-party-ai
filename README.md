@@ -91,7 +91,7 @@ The project is built around a simple idea:
 
 The AI does not directly control Minecraft.
 
-Instead, the app and planner work through structured jobs. Early jobs can be observational, like Maphew surveying the area around spawn:
+Instead, the app and planner work through structured goals, reusable plans, jobs, steps, and explicit approval rules. Early jobs can be observational, like Maphew surveying the area around spawn:
 
     {
       "bot": "Maphew",
@@ -118,6 +118,20 @@ Later, destructive jobs can use the same structured approach:
 
 The local app previews and validates jobs. Destructive work requires human approval before a Mineflayer bot executes it.
 
+## Coordination lexicon
+
+The crew should use one small vocabulary so the UI, planner, docs, and bot code all mean the same thing.
+
+* Goal: a desired outcome, such as "craft a hoe," "feed Maphew," or "build a foundry." Goals may come from the human, a bot request, or a planner proposal.
+* Plan: a reusable collection of jobs that fulfills a goal. For example, "Build a foundry" might include jobs to place walls, place chests, stock ore, stock coal, and place a crafting table.
+* Job: an assignable unit of work for one bot. Every job has one or more tracked steps, even if the job is tiny.
+* Step: the smallest tracked action inside a job, such as "place chest," "add 48 iron ore," "craft hoe," or "walk to storage."
+* Job Request: a bot-originated request for help, resources, location info, tools, food, or planner support.
+* Job Template: a reusable approved job shape, such as `craft_item`, `fetch_item`, `survey_area`, `stock_chest`, or `place_blocks`.
+* Greenlight Rule: a human-configured approval policy saying a template or plan can run without repeated approval under defined limits.
+
+This lets the human approve big intentions, reuse known plans, and give the crew limited freedom for low-risk work without handing them unlimited autonomy.
+
 ## Planned bot roles
 
 ### Cartographer bot
@@ -131,6 +145,16 @@ Example role:
 * Maphew
 
 The cartographer is the first real bot feature. The other crew roles below are planned for later phases.
+
+### Provisions bot
+
+The provisions bot keeps the crew fed and starts the farming loop.
+
+Snackwella should grow crops, manage seeds, prepare food, and request supplies from other bots when she is blocked. For example, she might ask Chesterton to fetch seeds, ask AnvilAnnie or Blocko for a hoe, or ask Maphew where a resource was last seen.
+
+Example role:
+
+* Snackwella
 
 ### Digger bots
 
@@ -196,18 +220,31 @@ Early project features include:
 
 This project should be safe by design.
 
-Bots should not be given unlimited freedom. The system should prefer small, inspectable jobs and require human approval before destructive actions.
+Bots should not be given unlimited freedom. The system should prefer small, inspectable jobs, reusable plans, and explicit greenlight rules. New goals and plans require human approval unless a greenlight rule applies.
 
 Important safety principles:
 
+* Bots do not invent major goals such as "build a foundry" on their own
+* Human-approved plans can be saved and reused in new places or worlds
+* Low-risk templates can be greenlit under defined limits
 * Destructive jobs require preview and approval
 * Bots work from approved job types only
 * Bots do not run arbitrary AI generated code
+* AI-drafted templates are saved for review and reuse, not executed as arbitrary code
 * Bots reserve zones before working
 * Bots stop when they detect lava, water, chests, spawners, or unexpected structures
 * Project state is saved locally
 * Worlds should be backed up before major automated build passes
 * Local offline servers should not be exposed to the public internet
+
+Greenlight examples:
+
+* Maphew may keep surveying or answering location questions from known survey data.
+* Chesterton may fetch requested common items from known chests.
+* Snackwella may run routine farming and food-prep jobs.
+* Blocko may craft low-risk utility items such as compasses for Maphew.
+
+Greenlight rules should still carry limits, such as allowed job templates, maximum item counts, allowed zones, required source chests, and whether the job may place or break blocks.
 
 ## Suggested local setup
 
@@ -291,6 +328,7 @@ Example environment values:
     BLACKSMITH_BOT_NAME=AnvilAnnie
     STOCKER_BOT_NAME=Chesterton
     GATHERER_BOT_NAME=SpruceLee
+    PROVISIONS_BOT_NAME=Snackwella
 
 AI usage records store estimated costs in USD using the pricing snapshot available when the API call was made. `AI_CONVERT_PRICING_TO` only changes dashboard display totals; provide a USD conversion rate in `AI_CONVERSION_PRICES_JSON`, such as `{"CAD":1.3751}`, if you want costs shown in another currency. If OpenAI returns a dated snapshot model like `gpt-5.2-2025-12-11`, the app can use pricing configured for the base key `gpt-5.2`.
 
@@ -333,7 +371,38 @@ The dashboard starts idle. Use the Local World dropdown to start or stop the con
 * Show patrol progress, sampled tiles, hazards, landmarks, and last survey time
 * Keep non-cartography dashboard panels as placeholders until their systems exist
 
-### Phase 4: Digger crew
+### Phase 4: Crew coordination design
+
+* Define goals, plans, jobs, steps, job requests, job templates, and greenlight rules
+* Define bot capability boundaries and the request flow between bots
+* Add Snackwella as the Provisions / Farming bot in the docs and roadmap
+* Move resource coordination ahead of destructive digging
+* Completed planning notes: `docs/implementation/crew-coordination-planning.md`
+
+### Phase 5: Coordination core
+
+* Add the job manager
+* Add reusable plan and job template storage
+* Add bot queues and step tracking
+* Add bot-originated job requests for food, resources, tools, location info, and planner support
+* Add planner proposal batches and human approval
+* Add greenlight rules for repeatable low-risk jobs
+* Keep Minecraft chat as a visible announcement layer while local state remains authoritative
+
+### Phase 6: Provisions, chests, tools, and safe setup
+
+* Add known chest registry
+* Add inventory summaries
+* Add Snackwella farming, food, and seed workflows
+* Add dump chest deposits
+* Add tool chest withdrawals
+* Add basic crafting jobs
+* Add furnace support
+* Add tool restocking
+* Add item transfer jobs between chests
+* Add Blocko safe-zone and utility crafting workflows such as torches and compasses
+
+### Phase 7: Digger crew
 
 * Add a digger role
 * Add zone reservations
@@ -341,25 +410,15 @@ The dashboard starts idle. Use the Local World dropdown to start or stop the con
 * Add safe join buffer between diggers
 * Add human approval before destructive clearVolume jobs
 
-### Phase 5: Chests, tools, blacksmith, and stocker
-
-* Add known chest registry
-* Add inventory summaries
-* Add dump chest deposits
-* Add tool chest withdrawals
-* Add basic crafting jobs
-* Add furnace support
-* Add tool restocking
-* Add item transfer jobs between chests
-
-### Phase 6: AI planner
+### Phase 8: AI planner
 
 * Add chat interface
 * Add structured AI planning response
-* Add job previews
-* Add approval workflow
+* Add reusable plan authoring
+* Add job previews and approval workflow
+* Add AI-drafted template review for unknown goals or jobs
 
-### Phase 7: Coaster prototype
+### Phase 9: Coaster prototype
 
 * Clear a short tunnel
 * Place a small track section
