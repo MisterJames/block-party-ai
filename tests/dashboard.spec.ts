@@ -1,13 +1,83 @@
+import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
 import { expect, test } from '@playwright/test'
 
 const placeholderRoutes = [
   ['/jobs', 'Jobs'],
-  ['/world', 'World'],
   ['/chests', 'Chests / Items'],
   ['/projects', 'Projects'],
   ['/logs', 'Logs'],
   ['/settings', 'Settings']
 ] as const
+
+const surveyFixturePath = 'test-results/survey-map-test.jsonl'
+const surveyFixtureRecords = [
+  {
+    id: 'sample-grass',
+    surveyId: 'spawn-256',
+    timestamp: '2026-05-18T20:00:00.000Z',
+    x: -128,
+    z: -128,
+    surfaceY: 68,
+    surfaceBlock: 'grass_block',
+    hazards: [],
+    landmarks: ['oak_log'],
+    walkable: true,
+    botPosition: { x: -128, y: 69, z: -128 },
+    error: null
+  },
+  {
+    id: 'sample-water',
+    surveyId: 'spawn-256',
+    timestamp: '2026-05-18T20:01:00.000Z',
+    x: -120,
+    z: -128,
+    surfaceY: 62,
+    surfaceBlock: 'water',
+    hazards: ['water'],
+    landmarks: ['coal_ore'],
+    walkable: false,
+    botPosition: { x: -120, y: 63, z: -128 },
+    error: null
+  },
+  {
+    id: 'sample-sand',
+    surveyId: 'spawn-256',
+    timestamp: '2026-05-18T20:02:00.000Z',
+    x: -112,
+    z: -128,
+    surfaceY: 65,
+    surfaceBlock: 'sand',
+    hazards: [],
+    landmarks: [],
+    walkable: true,
+    botPosition: { x: -112, y: 66, z: -128 },
+    error: null
+  },
+  {
+    id: 'sample-error',
+    surveyId: 'spawn-256',
+    timestamp: '2026-05-18T20:03:00.000Z',
+    x: -104,
+    z: -128,
+    surfaceY: null,
+    surfaceBlock: null,
+    hazards: ['unreachable'],
+    landmarks: [],
+    walkable: false,
+    botPosition: { x: -104, y: 66, z: -128 },
+    error: 'Path was stopped before it could be completed!'
+  }
+] as const
+
+test.beforeEach(async ({}, testInfo) => {
+  if (testInfo.title.includes('empty survey file')) {
+    return
+  }
+
+  await mkdir(dirname(surveyFixturePath), { recursive: true })
+  await writeFile(surveyFixturePath, `${surveyFixtureRecords.map((record) => JSON.stringify(record)).join('\n')}\n`, 'utf8')
+})
 
 function parseCounter(value: string | null) {
   return Number((value ?? '').replace(/[^0-9]/g, ''))
@@ -30,7 +100,7 @@ test('overview renders the desktop dashboard shell', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Active Jobs' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'World Overview' })).toBeVisible()
   await expect(page.locator('canvas')).toHaveCount(4)
-  await expect(page.locator('svg[aria-label="Placeholder pixelated world overview map"]')).toBeVisible()
+  await expect(page.locator('svg[aria-label="Maphew survey world overview map"]')).toBeVisible()
   await expect(page.getByTestId('blocks-mined')).toHaveText('0')
 
   const bodyBackground = await page.locator('body').evaluate((body) => getComputedStyle(body).backgroundColor)
@@ -124,6 +194,37 @@ test('/bots exposes Maphew controls without auto-connecting', async ({ page }) =
   await expect(page.getByText('CaptainCobble')).toBeVisible()
 })
 
+test('/world renders the Maphew survey map and pins findings', async ({ page }) => {
+  await page.goto('/world')
+
+  await expect(page.getByRole('heading', { name: 'World' })).toBeVisible()
+  await expect(page.getByText('Placeholder route')).not.toBeVisible()
+  await expect(page.locator('canvas[aria-label="Maphew survey pixel map"]')).toBeVisible()
+  await expect(page.getByText('4/1024')).toBeVisible()
+  await expect(page.getByText('water').first()).toBeVisible()
+  await expect(page.getByText('oak_log').first()).toBeVisible()
+
+  const waterFinding = page.getByTestId('finding-point-hazard').first()
+
+  await waterFinding.hover()
+  await expect(page.getByTestId('world-map-hover')).toBeVisible()
+  await waterFinding.click()
+  await expect(page.getByTestId('world-map-pin')).toBeVisible()
+  await expect(page.getByTestId('world-map-selected')).toContainText('water')
+
+  await page.screenshot({ path: 'test-results/world-map-desktop.png', fullPage: true })
+})
+
+test('/world handles an empty survey file', async ({ page }) => {
+  await rm(surveyFixturePath, { force: true })
+  await mkdir(dirname(surveyFixturePath), { recursive: true })
+  await page.goto('/world')
+
+  await expect(page.locator('canvas[aria-label="Maphew survey pixel map"]')).toBeVisible()
+  await expect(page.getByText('0/1024')).toBeVisible()
+  await expect(page.getByText('No matching findings.').first()).toBeVisible()
+})
+
 for (const [route, heading] of placeholderRoutes) {
   test(`${route} placeholder route is browsable`, async ({ page }) => {
     await page.goto(route)
@@ -156,4 +257,18 @@ test('mobile viewport stacks dashboard without page overflow', async ({ page }) 
   expect(scrollWidth).toBeLessThanOrEqual(viewportWidth + 1)
 
   await page.screenshot({ path: 'test-results/dashboard-overview-mobile.png', fullPage: true })
+})
+
+test('mobile world map stacks without page overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 })
+  await page.goto('/world')
+
+  await expect(page.getByRole('heading', { name: 'World' })).toBeVisible()
+  await expect(page.locator('canvas[aria-label="Maphew survey pixel map"]')).toBeVisible()
+
+  const scrollWidth = await page.locator('body').evaluate(() => document.documentElement.scrollWidth)
+  const viewportWidth = await page.locator('body').evaluate(() => document.documentElement.clientWidth)
+  expect(scrollWidth).toBeLessThanOrEqual(viewportWidth + 1)
+
+  await page.screenshot({ path: 'test-results/world-map-mobile.png', fullPage: true })
 })
