@@ -66,6 +66,7 @@
                 :disabled="isSubmitting"
                 placeholder="Ask the planner something exploratory, like: sketch a safe first Maphew survey plan near spawn."
                 class="w-full"
+                @input="updateDraft"
               />
               <div class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p :class="['text-xs', errorMessage ? 'text-red-300' : 'text-slate-500']">
@@ -77,7 +78,7 @@
                   label="Send"
                   color="primary"
                   :loading="isSubmitting"
-                  :disabled="!draft.trim()"
+                  :disabled="isSubmitting"
                 />
               </div>
             </form>
@@ -182,5 +183,9 @@ async function submitPrompt() {
   } finally {
     isSubmitting.value = false
   }
+}
+
+function updateDraft(event: Event) {
+  draft.value = (event.target as HTMLTextAreaElement).value
 }
 </script>

@@ -72,11 +72,6 @@ Last verified with:
 
 ```powershell
 corepack pnpm typecheck
-```
-
-Full final verification for this branch should also run:
-
-```powershell
 corepack pnpm build
 corepack pnpm test:e2e
 ```

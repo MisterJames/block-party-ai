@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 
 const placeholderRoutes = [
-  ['/bots', 'Bots'],
   ['/jobs', 'Jobs'],
   ['/world', 'World'],
   ['/chests', 'Chests / Items'],
@@ -103,7 +102,7 @@ test('overview does not auto-start bot or mining activity', async ({ page }) => 
 
   await expect(counter).toHaveText('0')
   await expect(page.getByText('No mining jobs running')).toBeVisible()
-  await expect(page.getByText('0 / 7')).toBeVisible()
+  await expect(page.getByTestId('bots-online')).toHaveText('0 / 7')
 
   await expect
     .poll(async () => parseCounter(await counter.textContent()), {
@@ -116,12 +115,12 @@ test('overview does not auto-start bot or mining activity', async ({ page }) => 
 test('/bots exposes Maphew controls without auto-connecting', async ({ page }) => {
   await page.goto('/bots')
 
-  await expect(page.getByRole('heading', { name: 'Bots' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bots', level: 1 })).toBeVisible()
   await expect(page.getByText('Maphew controls are explicit')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Connect' })).toBeDisabled()
-  await expect(page.getByRole('button', { name: 'Start Survey' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Connect', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Start Survey', exact: true })).toBeDisabled()
   await expect(page.getByText('Start or connect a local Minecraft server')).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Bots' }).last()).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bots', level: 2 })).toBeVisible()
   await expect(page.getByText('CaptainCobble')).toBeVisible()
 })
 

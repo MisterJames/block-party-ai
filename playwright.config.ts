@@ -9,13 +9,13 @@ export default defineConfig({
     timeout: 10_000
   },
   use: {
-    baseURL: 'http://127.0.0.1:3000',
+    baseURL: 'http://127.0.0.1:3100',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure'
   },
   webServer: {
-    command: 'corepack pnpm exec nuxt cleanup && corepack pnpm dev --host 127.0.0.1 --port 3000',
-    url: 'http://127.0.0.1:3000',
+    command: 'corepack pnpm exec nuxt cleanup && corepack pnpm dev --host 127.0.0.1 --port 3100',
+    url: 'http://127.0.0.1:3100',
     env: {
       NUXT_IGNORE_LOCK: '1',
       AI_USAGE_LOG_PATH: 'test-results/ai-usage-test.jsonl',

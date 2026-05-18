@@ -1,11 +1,15 @@
 import { randomUUID } from 'node:crypto'
 import { appendFile, mkdir, readFile } from 'node:fs/promises'
 import { dirname, relative } from 'node:path'
-import { createBot, type Bot } from 'mineflayer'
-import { Movements, goals, pathfinder } from 'mineflayer-pathfinder'
+import mineflayer from 'mineflayer'
+import type { Bot } from 'mineflayer'
+import pathfinderModule from 'mineflayer-pathfinder'
 import { Vec3 } from 'vec3'
 import type { MaphewPosition, MaphewStatus, SurveySampleRecord, SurveySummary } from '../../types/dashboard'
 import { formatLocalPath, getBotNames, getMinecraftConnectionConfig, getSurveyConfig } from './minecraft-config'
+
+const { createBot } = mineflayer as typeof import('mineflayer')
+const { Movements, goals, pathfinder } = pathfinderModule as unknown as typeof import('mineflayer-pathfinder')
 
 type MaphewRuntime = {
   bot: Bot | null
