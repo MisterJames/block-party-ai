@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test'
 
 const placeholderRoutes = [
-  ['/bots', 'Bots'],
   ['/jobs', 'Jobs'],
   ['/world', 'World'],
   ['/chests', 'Chests / Items'],
@@ -20,6 +19,9 @@ test('overview renders the desktop dashboard shell', async ({ page }) => {
   await expect(page.locator('html')).toHaveClass(/dark/)
   await expect(page.getByRole('heading', { name: 'Dashboard Overview' })).toBeVisible()
   await expect(page.getByText('Block Party AI', { exact: true })).toBeVisible()
+  await expect(page.getByText('Setup Needed')).toBeVisible()
+  await expect(page.getByText('No bots auto-connected')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Local server controls' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'AI Usage' })).toBeVisible()
   await expect(page.getByText('Local JSONL')).toBeVisible()
   await expect(page.getByText('test-results/ai-usage-test.jsonl', { exact: true })).toBeVisible()
@@ -29,6 +31,7 @@ test('overview renders the desktop dashboard shell', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'World Overview' })).toBeVisible()
   await expect(page.locator('canvas')).toHaveCount(4)
   await expect(page.locator('svg[aria-label="Placeholder pixelated world overview map"]')).toBeVisible()
+  await expect(page.getByTestId('blocks-mined')).toHaveText('0')
 
   const bodyBackground = await page.locator('body').evaluate((body) => getComputedStyle(body).backgroundColor)
   expect(bodyBackground).toMatch(/^(oklch\(0\.129|rgb\(2, 6, 23\))/)
@@ -93,20 +96,32 @@ test('planner POC submits a free-form call and refreshes AI usage', async ({ req
   await page.screenshot({ path: 'test-results/planner-poc-desktop.png', fullPage: true })
 })
 
-test('blocks mined counter moves while overview is open', async ({ page }) => {
+test('overview does not auto-start bot or mining activity', async ({ page }) => {
   await page.goto('/')
   const counter = page.getByTestId('blocks-mined')
 
-  await expect.poll(async () => parseCounter(await counter.textContent())).not.toBe(1800)
-  const startingValue = parseCounter(await counter.textContent())
-  expect(startingValue).toBeGreaterThanOrEqual(1200)
+  await expect(counter).toHaveText('0')
+  await expect(page.getByText('No mining jobs running')).toBeVisible()
+  await expect(page.getByTestId('bots-online')).toHaveText('0 / 7')
 
   await expect
     .poll(async () => parseCounter(await counter.textContent()), {
-      timeout: 4_000,
+      timeout: 2_000,
       intervals: [500, 500, 750, 1000]
     })
-    .toBeGreaterThan(startingValue)
+    .toBe(0)
+})
+
+test('/bots exposes Maphew controls without auto-connecting', async ({ page }) => {
+  await page.goto('/bots')
+
+  await expect(page.getByRole('heading', { name: 'Bots', level: 1 })).toBeVisible()
+  await expect(page.getByText('Maphew controls are explicit')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Connect', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Start Survey', exact: true })).toBeDisabled()
+  await expect(page.getByText('Start or connect a local Minecraft server')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bots', level: 2 })).toBeVisible()
+  await expect(page.getByText('CaptainCobble')).toBeVisible()
 })
 
 for (const [route, heading] of placeholderRoutes) {

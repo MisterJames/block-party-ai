@@ -14,6 +14,8 @@ See `docs/implementation/dashboard-scaffold.md` for the completed scaffold notes
 
 The Phase 1 AI usage dashboard slice is complete on `feature/ai-usage-dashboard`. It adds append-only local JSONL records, token/cost summary endpoints, dashboard AI usage summaries, a small `/planner` free-form API-call POC, and honest planned-crew placeholders while keeping the rest of the overview placeholder-backed. See `docs/implementation/ai-usage-dashboard.md`.
 
+The Phase 2 Maphew connection and survey data slice is complete on `feature/maphew-survey-data`. It adds explicit local server controls, Maphew connection/survey APIs, JSONL survey persistence, and real dashboard status summaries. The full rendered survey map remains Phase 3 work. See `docs/implementation/maphew-survey-data.md`.
+
 ## Overall dashboard layout
 
 The main dashboard can be organized into a few stable regions:
