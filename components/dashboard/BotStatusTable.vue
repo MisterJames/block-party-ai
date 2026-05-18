@@ -68,7 +68,7 @@
         </tbody>
       </table>
       <div class="flex min-w-[900px] items-center justify-between border-t border-slate-800 px-4 py-2 text-xs">
-        <span class="text-amber-300">1 of 7 bots active; remaining crew planned</span>
+        <span class="text-amber-300">{{ activeBotCount }} of {{ bots.length }} bots active; remaining crew planned</span>
         <UButton label="View All Bots" to="/bots" color="neutral" variant="soft" size="xs" />
       </div>
     </div>
@@ -78,9 +78,11 @@
 <script setup lang="ts">
 import type { BotRow } from '~/types/dashboard'
 
-defineProps<{
+const props = defineProps<{
   bots: BotRow[]
 }>()
+
+const activeBotCount = computed(() => props.bots.filter((bot) => !['Offline', 'Planned', 'Blocked', 'Failed'].includes(bot.status)).length)
 
 function statusColor(tone: BotRow['statusTone']) {
   return {

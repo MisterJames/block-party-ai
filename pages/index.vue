@@ -1,6 +1,9 @@
 <template>
   <main class="min-h-screen bg-slate-950 text-slate-100 lg:pl-64">
-    <DashboardSidebar :health-stats="store.healthStats" />
+    <DashboardSidebar
+      :health-stats="store.healthStats"
+      :world-connection="store.worldConnection"
+    />
 
     <section class="flex min-h-screen flex-col">
       <div class="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -11,10 +14,10 @@
         <div class="flex flex-wrap items-center gap-3 text-xs text-slate-400">
           <div class="flex items-center gap-2">
             <UIcon name="i-lucide-sun" class="size-4" />
-            <span>10:42:18 AM</span>
+            <span>{{ currentTime }}</span>
           </div>
-          <UBadge color="success" variant="subtle" size="lg">
-            All Systems Go
+          <UBadge :color="systemBadgeColor" variant="subtle" size="lg">
+            {{ systemBadgeLabel }}
           </UBadge>
         </div>
       </div>
@@ -55,12 +58,29 @@
 <script setup lang="ts">
 const store = useDashboardStore()
 
+const currentTime = computed(() => new Intl.DateTimeFormat('en-US', {
+  hour: 'numeric',
+  minute: '2-digit'
+}).format(new Date()))
+const systemBadgeLabel = computed(() => {
+  if (store.localServer?.ready && store.maphewStatus?.connected) return 'Crew Connected'
+  if (store.localServer?.state === 'blocked') return 'Setup Needed'
+  if (store.localServer?.ready) return 'Server Online'
+  return 'Idle'
+})
+const systemBadgeColor = computed(() => {
+  if (store.localServer?.ready && store.maphewStatus?.connected) return 'success'
+  if (store.localServer?.state === 'blocked') return 'warning'
+  return 'neutral'
+})
+
 onMounted(() => {
-  store.startLiveCounters()
+  store.refreshOperationalStatus()
+  store.startOperationalPolling()
   store.refreshAiUsage()
 })
 
 onBeforeUnmount(() => {
-  store.stopLiveCounters()
+  store.stopOperationalPolling()
 })
 </script>

@@ -74,32 +74,53 @@
             <UIcon name="i-lucide-blocks" class="size-5" />
           </div>
           <div class="min-w-0">
-            <p class="text-sm font-medium text-slate-100">
-              Local World
+            <p class="truncate text-sm font-medium text-slate-100">
+              {{ worldConnection?.label ?? 'Local World' }}
             </p>
-            <p class="text-xs text-slate-400">
-              127.0.0.1:25565
+            <p class="truncate text-xs text-slate-400">
+              {{ worldConnection?.host ?? 'localhost' }}:{{ worldConnection?.port ?? 25565 }}
             </p>
-            <p class="mt-1 flex items-center gap-1 text-xs text-emerald-300">
-              <span class="size-1.5 rounded-full bg-emerald-400" />
-              Offline Mode
-            </p>
+            <div class="mt-1 flex flex-wrap items-center gap-1.5">
+              <UBadge :color="serverBadgeColor" variant="subtle" size="sm">
+                {{ serverLabel }}
+              </UBadge>
+              <span class="text-xs text-slate-500">{{ authLabel }}</span>
+            </div>
           </div>
-          <UIcon name="i-lucide-chevron-down" class="ml-auto size-4 text-slate-500" />
+          <UDropdownMenu :items="serverMenuItems">
+            <UTooltip text="Local server controls">
+              <UButton
+                icon="i-lucide-chevron-down"
+                color="neutral"
+                variant="ghost"
+                size="xs"
+                class="ml-auto"
+                aria-label="Local server controls"
+              />
+            </UTooltip>
+          </UDropdownMenu>
         </div>
+        <p
+          v-if="store.localServerActionError"
+          class="mt-2 line-clamp-2 text-xs text-amber-300"
+        >
+          {{ store.localServerActionError }}
+        </p>
       </div>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
-import type { HealthStat } from '~/types/dashboard'
+import type { HealthStat, WorldConnectionStatus } from '~/types/dashboard'
 
-defineProps<{
+const props = defineProps<{
   healthStats: HealthStat[]
+  worldConnection: WorldConnectionStatus | null
 }>()
 
 const route = useRoute()
+const store = useDashboardStore()
 
 const navItems = [
   { label: 'Overview', to: '/', icon: 'i-lucide-layout-dashboard' },
@@ -121,4 +142,46 @@ function toneText(tone: HealthStat['tone']) {
     neutral: 'text-slate-200'
   }[tone]
 }
+
+const server = computed(() => store.localServer)
+
+const serverLabel = computed(() => {
+  if (!server.value) return 'Loading'
+  if (server.value.ready) return 'Online'
+  if (server.value.state === 'blocked') return 'Blocked'
+  if (server.value.state === 'starting') return 'Starting'
+  if (server.value.state === 'stopping') return 'Stopping'
+  if (server.value.state === 'failed') return 'Failed'
+  return 'Stopped'
+})
+
+const serverBadgeColor = computed(() => {
+  if (server.value?.ready) return 'success'
+  if (server.value?.state === 'blocked' || server.value?.state === 'failed') return 'warning'
+  return 'neutral'
+})
+
+const authLabel = computed(() => props.worldConnection?.auth === 'offline' ? 'Offline Mode' : 'Auth configured')
+
+const serverMenuItems = computed(() => [
+  [
+    {
+      label: 'Start local server',
+      icon: 'i-lucide-play',
+      disabled: !server.value?.canStart,
+      onSelect: () => store.startLocalServer()
+    },
+    {
+      label: 'Stop local server',
+      icon: 'i-lucide-square',
+      disabled: !server.value?.pid && !server.value?.ready,
+      onSelect: () => store.stopLocalServer()
+    },
+    {
+      label: 'Refresh status',
+      icon: 'i-lucide-refresh-cw',
+      onSelect: () => store.refreshOperationalStatus()
+    }
+  ]
+])
 </script>

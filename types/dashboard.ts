@@ -1,6 +1,6 @@
 export type Severity = 'info' | 'success' | 'warning' | 'danger'
 
-export type BotStatus = 'Working' | 'Surveying' | 'Going To' | 'Paused' | 'Planned' | 'Waiting' | 'Offline'
+export type BotStatus = 'Working' | 'Surveying' | 'Connecting' | 'Going To' | 'Paused' | 'Planned' | 'Waiting' | 'Offline' | 'Blocked' | 'Failed'
 
 export interface DashboardMetric {
   id: string

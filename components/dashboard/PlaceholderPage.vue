@@ -1,6 +1,9 @@
 <template>
   <main class="min-h-screen bg-slate-950 pl-64 text-slate-100">
-    <DashboardSidebar :health-stats="store.healthStats" />
+    <DashboardSidebar
+      :health-stats="store.healthStats"
+      :world-connection="store.worldConnection"
+    />
     <section class="p-6">
       <div class="mb-6 flex items-center justify-between">
         <div>
@@ -32,4 +35,8 @@ defineProps<{
 }>()
 
 const store = useDashboardStore()
+
+onMounted(() => {
+  store.refreshOperationalStatus()
+})
 </script>

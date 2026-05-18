@@ -1,6 +1,9 @@
 <template>
   <main class="min-h-screen bg-slate-950 text-slate-100 lg:pl-64">
-    <DashboardSidebar :health-stats="store.healthStats" />
+    <DashboardSidebar
+      :health-stats="store.healthStats"
+      :world-connection="store.worldConnection"
+    />
 
     <section class="space-y-3 p-4 sm:p-5">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -134,6 +137,7 @@ const messages = ref<PlannerMessage[]>([
 ])
 
 onMounted(() => {
+  store.refreshOperationalStatus()
   store.refreshAiUsage()
 })
 
