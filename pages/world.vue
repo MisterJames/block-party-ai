@@ -96,7 +96,8 @@
             <UAccordion
               :items="findingSections"
               :default-value="['hazards', 'landmarks']"
-              multiple
+              type="multiple"
+              collapsible
               :ui="{ trigger: 'px-3 py-2 text-xs', content: 'pb-2' }"
             >
               <template #content="{ item }">

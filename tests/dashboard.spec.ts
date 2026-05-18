@@ -200,11 +200,11 @@ test('/world renders the Maphew survey map and pins findings', async ({ page }) 
   await expect(page.getByRole('heading', { name: 'World' })).toBeVisible()
   await expect(page.getByText('Placeholder route')).not.toBeVisible()
   await expect(page.locator('canvas[aria-label="Maphew survey pixel map"]')).toBeVisible()
-  await expect(page.getByText('4/1024')).toBeVisible()
+  await expect(page.getByTestId('world-sampled')).toHaveText('4/1024')
   await expect(page.getByText('water').first()).toBeVisible()
   await expect(page.getByText('oak_log').first()).toBeVisible()
 
-  const waterFinding = page.getByTestId('finding-point-hazard').first()
+  const waterFinding = page.getByTestId('finding-point-hazard').filter({ hasText: 'water · not walkable' }).first()
 
   await waterFinding.hover()
   await expect(page.getByTestId('world-map-hover')).toBeVisible()
@@ -221,7 +221,7 @@ test('/world handles an empty survey file', async ({ page }) => {
   await page.goto('/world')
 
   await expect(page.locator('canvas[aria-label="Maphew survey pixel map"]')).toBeVisible()
-  await expect(page.getByText('0/1024')).toBeVisible()
+  await expect(page.getByTestId('world-sampled')).toHaveText('0/1024')
   await expect(page.getByText('No matching findings.').first()).toBeVisible()
 })
 
