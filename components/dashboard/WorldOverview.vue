@@ -12,7 +12,7 @@
         class="pixelated size-full"
         viewBox="0 0 720 270"
         role="img"
-        aria-label="Placeholder pixelated world overview map"
+        aria-label="Maphew survey world overview map"
       >
         <defs>
           <pattern id="forest-grid" width="24" height="24" patternUnits="userSpaceOnUse">

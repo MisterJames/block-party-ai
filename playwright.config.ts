@@ -33,7 +33,7 @@ export default defineConfig({
       MINECRAFT_AUTH: 'offline',
       MINECRAFT_EULA_ACCEPTED: 'false',
       MINECRAFT_SERVER_ONLINE_MODE: 'false',
-      MAPHEW_SURVEY_LOG_PATH: 'test-results/spawn-256.samples.jsonl',
+      MAPHEW_SURVEY_LOG_PATH: 'test-results/survey-map-test.jsonl',
       OPENAI_MODEL: 'test-planner-model',
       PLANNER_POC_FAKE_AI: '1'
     },

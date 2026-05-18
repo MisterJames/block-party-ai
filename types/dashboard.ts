@@ -249,3 +249,98 @@ export interface DashboardOperationalStatus {
   worldConnection: WorldConnectionStatus
   maphew: MaphewStatus
 }
+
+export interface SurveyMapTile extends SurveySampleRecord {
+  gridX: number
+  gridZ: number
+  routeIndex: number
+  latestForCoordinate: boolean
+}
+
+export interface SurveyFindingPoint {
+  id: string
+  type: string
+  category: 'hazard' | 'landmark' | 'surface' | 'error'
+  x: number
+  z: number
+  gridX: number
+  gridZ: number
+  surfaceY: number | null
+  surfaceBlock: string | null
+  walkable: boolean
+  timestamp: string
+  error: string | null
+}
+
+export interface SurveyFindingGroup {
+  id: string
+  type: string
+  category: SurveyFindingPoint['category']
+  count: number
+  points: SurveyFindingPoint[]
+}
+
+export interface SurveyMapLayerState {
+  hazards: boolean
+  landmarks: boolean
+  walkable: boolean
+  route: boolean
+  height: boolean
+}
+
+export interface SelectedSurveyFinding {
+  id: string
+  source: 'map' | 'sidebar'
+  point: SurveyFindingPoint
+}
+
+export interface SurveyMapPayload {
+  surveyId: string
+  status: SurveySummary['status']
+  area: SurveyArea
+  bounds: {
+    minX: number
+    maxX: number
+    minZ: number
+    maxZ: number
+  }
+  grid: {
+    columns: number
+    rows: number
+    totalTiles: number
+    sampledTiles: number
+    sampleInterval: number
+  }
+  progressPercent: number
+  lastSurveyAt: string | null
+  maphewPosition: MaphewPosition | null
+  route: Array<{
+    x: number
+    z: number
+    gridX: number
+    gridZ: number
+    routeIndex: number
+    sampled: boolean
+  }>
+  tiles: SurveyMapTile[]
+  findings: {
+    hazards: SurveyFindingGroup[]
+    landmarks: SurveyFindingGroup[]
+    surfaceBlocks: SurveyFindingGroup[]
+    errors: SurveyFindingGroup[]
+  }
+  stats: {
+    hazardsFound: number
+    landmarksFound: number
+    walkableTiles: number
+    walkablePercent: number
+    minSurfaceY: number | null
+    maxSurfaceY: number | null
+  }
+  parsing: {
+    skippedLines: number
+    duplicateCoordinates: number
+    storagePath: string
+    gitIgnored: boolean
+  }
+}
