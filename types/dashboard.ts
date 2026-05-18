@@ -133,3 +133,119 @@ export interface AiUsageDashboardSummary {
     survivesNuxtCleanup: boolean
   }
 }
+
+export type LocalServerState = 'stopped' | 'starting' | 'running' | 'stopping' | 'blocked' | 'failed'
+
+export interface LocalServerStatus {
+  state: LocalServerState
+  host: string
+  port: number
+  auth: string
+  onlineMode: boolean
+  pid: number | null
+  ready: boolean
+  canStart: boolean
+  configured: {
+    serverDir: boolean
+    serverJar: boolean
+    java: boolean
+    eulaAccepted: boolean
+  }
+  blockers: string[]
+  lastStartedAt: string | null
+  lastStoppedAt: string | null
+  lastExitCode: number | null
+  outputTail: string[]
+  ping: {
+    online: boolean
+    latencyMs: number | null
+    version: string | null
+    playersOnline: number | null
+    playersMax: number | null
+  }
+}
+
+export interface WorldConnectionStatus {
+  label: string
+  host: string
+  port: number
+  auth: string
+  onlineMode: boolean
+  server: LocalServerStatus
+}
+
+export type MaphewRuntimeState = 'disconnected' | 'connecting' | 'connected' | 'surveying' | 'blocked' | 'failed'
+
+export interface MaphewPosition {
+  x: number
+  y: number
+  z: number
+}
+
+export interface SurveyArea {
+  center: {
+    x: number
+    z: number
+  }
+  size: {
+    x: number
+    z: number
+  }
+  sampleInterval: number
+}
+
+export interface SurveySampleRecord {
+  id: string
+  surveyId: string
+  timestamp: string
+  x: number
+  z: number
+  surfaceY: number | null
+  surfaceBlock: string | null
+  hazards: string[]
+  landmarks: string[]
+  walkable: boolean
+  botPosition: MaphewPosition | null
+  error: string | null
+}
+
+export interface SurveySummary {
+  surveyId: string
+  status: 'idle' | 'surveying' | 'paused' | 'complete' | 'blocked' | 'failed'
+  area: SurveyArea
+  sampledTiles: number
+  totalTiles: number
+  progressPercent: number
+  hazardsFound: number
+  landmarksFound: number
+  walkablePercent: number
+  lastSurveyAt: string | null
+  lastSample: SurveySampleRecord | null
+  storage: {
+    path: string
+    gitIgnored: boolean
+    appendOnly: boolean
+  }
+}
+
+export interface MaphewStatus {
+  name: string
+  role: 'Cartographer'
+  state: MaphewRuntimeState
+  connected: boolean
+  currentJob: string
+  position: MaphewPosition | null
+  health: number | null
+  food: number | null
+  dimension: string | null
+  version: string | null
+  lastActivityAt: string | null
+  lastError: string | null
+  survey: SurveySummary
+}
+
+export interface DashboardOperationalStatus {
+  localServer: LocalServerStatus
+  worldConnection: WorldConnectionStatus
+  maphew: MaphewStatus
+}
