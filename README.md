@@ -272,7 +272,19 @@ Example environment values:
     MINECRAFT_HOST=localhost
     MINECRAFT_PORT=25565
     MINECRAFT_AUTH=offline
+    MINECRAFT_SERVER_DIR=
+    MINECRAFT_SERVER_JAR=
+    MINECRAFT_JAVA_BIN=
+    MINECRAFT_EULA_ACCEPTED=false
+    MINECRAFT_SERVER_MEMORY_MB=2048
+    MINECRAFT_SERVER_ONLINE_MODE=false
     CARTOGRAPHER_BOT_NAME=Maphew
+    MAPHEW_SURVEY_ID=spawn-256
+    MAPHEW_SURVEY_CENTER_X=0
+    MAPHEW_SURVEY_CENTER_Z=0
+    MAPHEW_SURVEY_SIZE=256
+    MAPHEW_SURVEY_SAMPLE_INTERVAL=8
+    MAPHEW_SURVEY_LOG_PATH=state/surveys/spawn-256.samples.jsonl
     BUILDER_BOT_NAME=Blocko
     DIGGER_LEADER_BOT_NAME=CaptainCobble
     DIGGER_WORKER_BOT_NAME=Doug
@@ -281,6 +293,12 @@ Example environment values:
     GATHERER_BOT_NAME=SpruceLee
 
 AI usage records store estimated costs in USD using the pricing snapshot available when the API call was made. `AI_CONVERT_PRICING_TO` only changes dashboard display totals; provide a USD conversion rate in `AI_CONVERSION_PRICES_JSON`, such as `{"CAD":1.3751}`, if you want costs shown in another currency. If OpenAI returns a dated snapshot model like `gpt-5.2-2025-12-11`, the app can use pricing configured for the base key `gpt-5.2`.
+
+For Phase 2, keep the Minecraft server jar and world files outside this repo in a managed local server folder. Set `MINECRAFT_SERVER_DIR`, `MINECRAFT_SERVER_JAR`, and optionally `MINECRAFT_JAVA_BIN` in your ignored `.env`. The committed `.env.example` intentionally leaves machine-specific paths blank.
+
+The app will not start the server unless `MINECRAFT_EULA_ACCEPTED=true` is set. Only set that after reviewing the Minecraft EULA for the Java Edition server. When the gate is true, the app may write `eula.txt` and `server.properties` inside `MINECRAFT_SERVER_DIR`; it will not copy server binaries into the repo.
+
+The dashboard starts idle. Use the Local World dropdown to start or stop the configured local server. Use `/bots` to connect/disconnect Maphew and start/stop the spawn survey.
 
 ## Development roadmap
 
@@ -307,6 +325,7 @@ AI usage records store estimated costs in USD using the pricing snapshot availab
 * Add patrol planning and practical terrain sampling
 * Record surface height, surface block, hazards, landmarks, and walkable zones
 * Persist survey data locally as JSON or JSONL
+* Completed implementation notes: `docs/implementation/maphew-survey-data.md`
 
 ### Phase 3: Maphew site map
 
