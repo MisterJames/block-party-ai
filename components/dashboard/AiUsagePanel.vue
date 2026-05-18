@@ -79,9 +79,9 @@
         </UTooltip>
       </div>
       <div class="min-w-0">
-        <p class="text-slate-500">Record Health</p>
+        <p class="text-slate-500">Cost Display</p>
         <p :class="['mt-1 truncate font-medium', error ? 'text-red-300' : 'text-slate-200']">
-          {{ healthLabel }}
+          {{ displayCurrencyLabel }}
         </p>
       </div>
     </div>
@@ -128,6 +128,22 @@ const healthLabel = computed(() => {
   }
 
   return `${props.summary.recordsTotal} records loaded`
+})
+
+const displayCurrencyLabel = computed(() => {
+  if (!props.summary) {
+    return 'Loading currency'
+  }
+
+  if (props.summary.displayCurrency.converted) {
+    return `USD x ${props.summary.displayCurrency.rateFromUsd} -> ${props.summary.displayCurrency.code}`
+  }
+
+  if (props.summary.displayCurrency.source.startsWith('missing-rate:')) {
+    return `${props.summary.displayCurrency.source.replace('missing-rate:', '')} rate missing`
+  }
+
+  return 'USD recorded pricing'
 })
 
 function helperColor(metric: SparklineMetric) {

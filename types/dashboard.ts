@@ -22,6 +22,13 @@ export interface SparklineMetric {
   tone?: 'neutral' | 'success' | 'warning'
 }
 
+export interface AiUsageDisplayCurrency {
+  code: string
+  rateFromUsd: number
+  converted: boolean
+  source: string
+}
+
 export interface BotRow {
   id: string
   name: string
@@ -107,6 +114,7 @@ export interface AiUsageRecordPreview {
 
 export interface AiUsageDashboardSummary {
   metrics: SparklineMetric[]
+  displayCurrency: AiUsageDisplayCurrency
   currentModel: string
   lastCallAt: string | null
   recordsToday: number

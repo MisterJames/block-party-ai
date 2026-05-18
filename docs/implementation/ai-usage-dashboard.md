@@ -37,7 +37,7 @@ await recordAiUsage({
 })
 ```
 
-Each stored record includes timestamp, model, purpose, token counts, estimated cost, and the pricing snapshot used for that estimate. Records are appended as JSONL and are not rewritten during summaries, builds, or Nuxt cleanup.
+Each stored record includes timestamp, model, purpose, token counts, estimated USD cost, and the pricing snapshot used for that estimate. Records are appended as JSONL and are not rewritten during summaries, builds, or Nuxt cleanup.
 
 ## Planner POC
 
@@ -69,6 +69,15 @@ AI_USAGE_DEFAULT_CACHED_INPUT_USD_PER_MILLION=0.25
 ```
 
 If pricing is missing, token summaries still work and the dashboard marks cost cards as unpriced instead of inventing an estimate.
+
+Display totals can be converted from recorded USD estimates with:
+
+```powershell
+AI_CONVERT_PRICING_TO=CAD
+AI_CONVERSION_PRICES_JSON={"CAD":1.3751}
+```
+
+`AI_CONVERSION_PRICES_JSON` maps currency codes to the number of target-currency units per 1 USD. The dashboard converts summary cards and charts only; stored records remain USD so old records are stable and auditable. If `AI_CONVERT_PRICING_TO` is set without a matching positive rate, the summary falls back to USD and reports the missing conversion source.
 
 ## Persistence Contract
 

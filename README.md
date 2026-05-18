@@ -264,6 +264,11 @@ You will need a local Minecraft Java server running and reachable by the bot ser
 Example environment values:
 
     OPENAI_API_KEY=
+    OPENAI_MODEL=gpt-5.2
+    AI_USAGE_LOG_PATH=state/ai-usage.jsonl
+    AI_USAGE_PRICES_JSON={"gpt-5.2":{"inputUsdPerMillion":1.75,"outputUsdPerMillion":14,"cachedInputUsdPerMillion":0.175}}
+    AI_CONVERT_PRICING_TO=CAD
+    AI_CONVERSION_PRICES_JSON={"CAD":1.3751}
     MINECRAFT_HOST=localhost
     MINECRAFT_PORT=25565
     MINECRAFT_AUTH=offline
@@ -274,6 +279,8 @@ Example environment values:
     BLACKSMITH_BOT_NAME=AnvilAnnie
     STOCKER_BOT_NAME=Chesterton
     GATHERER_BOT_NAME=SpruceLee
+
+AI usage records store estimated costs in USD using the pricing snapshot available when the API call was made. `AI_CONVERT_PRICING_TO` only changes dashboard display totals; provide a USD conversion rate in `AI_CONVERSION_PRICES_JSON`, such as `{"CAD":1.3751}`, if you want costs shown in another currency.
 
 ## Development roadmap
 

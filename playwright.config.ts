@@ -26,6 +26,8 @@ export default defineConfig({
           cachedInputUsdPerMillion: 0.25
         }
       }),
+      AI_CONVERT_PRICING_TO: 'CAD',
+      AI_CONVERSION_PRICES_JSON: JSON.stringify({ CAD: 1.3751 }),
       OPENAI_MODEL: 'test-planner-model',
       PLANNER_POC_FAKE_AI: '1'
     },

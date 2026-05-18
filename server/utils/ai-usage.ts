@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { appendFile, mkdir, readFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path'
-import type { AiUsageDashboardSummary, AiUsagePricingSnapshot, AiUsageRecord, AiUsageRecordPreview, SparklineMetric } from '../../types/dashboard'
+import type { AiUsageDashboardSummary, AiUsageDisplayCurrency, AiUsagePricingSnapshot, AiUsageRecord, AiUsageRecordPreview, SparklineMetric } from '../../types/dashboard'
 
 const tokensPerMillion = 1_000_000
 const defaultProjectId = 'local'
@@ -78,16 +78,16 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat('en-US').format(Math.round(value))
 }
 
-function formatUsd(value: number | null) {
+function formatCurrency(value: number | null, displayCurrency: AiUsageDisplayCurrency) {
   if (value === null) {
     return 'Unpriced'
   }
 
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: value >= 1 ? 2 : 4
-  }).format(value)
+    currency: displayCurrency.code,
+    maximumFractionDigits: value * displayCurrency.rateFromUsd >= 1 ? 2 : 4
+  }).format(value * displayCurrency.rateFromUsd)
 }
 
 function safeDate(value: string | undefined) {
@@ -129,6 +129,51 @@ function parsePricingJson(model: string): AiUsagePricingSnapshot | null {
     }
   } catch {
     return null
+  }
+}
+
+function parseConversionJson() {
+  const rawConversions = process.env.AI_CONVERSION_PRICES_JSON
+
+  if (!rawConversions) {
+    return {}
+  }
+
+  try {
+    return JSON.parse(rawConversions) as Record<string, unknown>
+  } catch {
+    return {}
+  }
+}
+
+function resolveDisplayCurrency(): AiUsageDisplayCurrency {
+  const requestedCurrency = process.env.AI_CONVERT_PRICING_TO?.trim().toUpperCase()
+
+  if (!requestedCurrency || requestedCurrency === 'USD') {
+    return {
+      code: 'USD',
+      rateFromUsd: 1,
+      converted: false,
+      source: 'recorded-usd'
+    }
+  }
+
+  const conversionRate = Number(parseConversionJson()[requestedCurrency])
+
+  if (!Number.isFinite(conversionRate) || conversionRate <= 0) {
+    return {
+      code: 'USD',
+      rateFromUsd: 1,
+      converted: false,
+      source: `missing-rate:${requestedCurrency}`
+    }
+  }
+
+  return {
+    code: requestedCurrency,
+    rateFromUsd: conversionRate,
+    converted: true,
+    source: 'AI_CONVERSION_PRICES_JSON'
   }
 }
 
@@ -325,6 +370,7 @@ export async function listAiUsageRecords(limit = 50) {
 
 export async function getAiUsageSummary(): Promise<AiUsageDashboardSummary> {
   const { records, skippedLines } = await parseUsageRecords()
+  const displayCurrency = resolveDisplayCurrency()
   const todayKey = localDateKey(new Date())
   const todayRecords = records.filter((record) => localDateKey(new Date(record.timestamp)) === todayKey)
   const totalTokensToday = todayRecords.reduce((total, record) => total + record.totalTokens, 0)
@@ -366,23 +412,24 @@ export async function getAiUsageSummary(): Promise<AiUsageDashboardSummary> {
       ),
       metric(
         'cost-today',
-        'AI Cost Today',
-        formatUsd(totalCostTodayUsd),
-        todayRecords.length ? costHelper : 'Configure pricing before calls',
+        `AI Cost Today (${displayCurrency.code})`,
+        formatCurrency(totalCostTodayUsd, displayCurrency),
+        todayRecords.length ? `${costHelper}${displayCurrency.converted ? ' converted' : ''}` : 'Configure pricing before calls',
         totalCostTodayUsd === null ? '#fbbf24' : '#4ade80',
-        hourlySeries(todayRecords, (record) => record.estimatedCostUsd ?? 0),
+        hourlySeries(todayRecords, (record) => (record.estimatedCostUsd ?? 0) * displayCurrency.rateFromUsd),
         totalCostTodayUsd === null && todayRecords.length ? 'warning' : 'neutral'
       ),
       metric(
         'world-cost',
-        'World Total Cost',
-        formatUsd(totalCostAllTimeUsd),
-        records.length ? costHelper : 'All time',
+        `World Total Cost (${displayCurrency.code})`,
+        formatCurrency(totalCostAllTimeUsd, displayCurrency),
+        records.length ? `${costHelper}${displayCurrency.converted ? ' converted' : ''}` : 'All time',
         totalCostAllTimeUsd === null ? '#fbbf24' : '#a78bfa',
-        hourlySeries(records, (record) => record.estimatedCostUsd ?? 0),
+        hourlySeries(records, (record) => (record.estimatedCostUsd ?? 0) * displayCurrency.rateFromUsd),
         totalCostAllTimeUsd === null && records.length ? 'warning' : 'neutral'
       )
     ],
+    displayCurrency,
     currentModel: latestRecord?.model ?? process.env.OPENAI_MODEL ?? 'Not recorded',
     lastCallAt: latestRecord?.timestamp ?? null,
     recordsToday: todayRecords.length,

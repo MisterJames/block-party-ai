@@ -54,13 +54,16 @@ test('AI usage records are appended and summarized', async ({ request, page }) =
 
   expect(summary.totalTokensAllTime).toBeGreaterThanOrEqual(1500)
   expect(summary.totalCostAllTimeUsd).not.toBeNull()
+  expect(summary.displayCurrency.code).toBe('CAD')
+  expect(summary.displayCurrency.rateFromUsd).toBe(1.3751)
   expect(summary.storage.gitIgnored).toBe(true)
   expect(summary.storage.survivesNuxtCleanup).toBe(true)
 
   await page.goto('/')
   await expect(page.getByText('test-planner-model').first()).toBeVisible()
+  await expect(page.getByText('AI Cost Today (CAD)')).toBeVisible()
+  await expect(page.getByText(/USD x 1\.3751 -> CAD/)).toBeVisible()
   await expect(page.getByText('plan_spawn_survey')).not.toBeVisible()
-  await expect(page.getByText(/records loaded/)).toBeVisible()
 })
 
 test('planner POC submits a free-form call and refreshes AI usage', async ({ request, page }) => {
