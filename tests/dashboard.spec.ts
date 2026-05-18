@@ -39,7 +39,7 @@ test('overview renders the desktop dashboard shell', async ({ page }) => {
 test('AI usage records are appended and summarized', async ({ request, page }) => {
   const response = await request.post('/api/ai-usage/records', {
     data: {
-      model: 'test-planner-model',
+      model: 'test-planner-model-2025-12-11',
       purpose: 'plan_spawn_survey',
       inputTokens: 1200,
       cachedInputTokens: 200,
@@ -60,7 +60,7 @@ test('AI usage records are appended and summarized', async ({ request, page }) =
   expect(summary.storage.survivesNuxtCleanup).toBe(true)
 
   await page.goto('/')
-  await expect(page.getByText('test-planner-model').first()).toBeVisible()
+  await expect(page.getByText('test-planner-model-2025-12-11').first()).toBeVisible()
   await expect(page.getByText('AI Cost Today (CAD)')).toBeVisible()
   await expect(page.getByText(/USD x 1\.3751 -> CAD/)).toBeVisible()
   await expect(page.getByText('plan_spawn_survey')).not.toBeVisible()

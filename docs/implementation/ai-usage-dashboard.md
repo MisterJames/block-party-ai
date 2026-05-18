@@ -70,6 +70,8 @@ AI_USAGE_DEFAULT_CACHED_INPUT_USD_PER_MILLION=0.25
 
 If pricing is missing, token summaries still work and the dashboard marks cost cards as unpriced instead of inventing an estimate.
 
+OpenAI responses may return dated model snapshots such as `gpt-5.2-2025-12-11`. Pricing lookup first checks that exact key, then falls back to the base model key, such as `gpt-5.2`. Existing unpriced records can therefore show current estimated totals once matching pricing is added, while new records store the USD estimate at call time.
+
 Display totals can be converted from recorded USD estimates with:
 
 ```powershell
@@ -77,7 +79,7 @@ AI_CONVERT_PRICING_TO=CAD
 AI_CONVERSION_PRICES_JSON={"CAD":1.3751}
 ```
 
-`AI_CONVERSION_PRICES_JSON` maps currency codes to the number of target-currency units per 1 USD. The dashboard converts summary cards and charts only; stored records remain USD so old records are stable and auditable. If `AI_CONVERT_PRICING_TO` is set without a matching positive rate, the summary falls back to USD and reports the missing conversion source.
+`AI_CONVERSION_PRICES_JSON` maps currency codes to the number of target-currency units per 1 USD. The dashboard converts summary cards and charts only; stored records remain USD so old records are stable and auditable. Displayed costs are rounded up to the next cent to keep tiny planner calls readable. If `AI_CONVERT_PRICING_TO` is set without a matching positive rate, the summary falls back to USD and reports the missing conversion source.
 
 ## Persistence Contract
 

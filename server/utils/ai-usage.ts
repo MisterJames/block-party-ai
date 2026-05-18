@@ -37,6 +37,12 @@ type ParsedRecords = {
   skippedLines: number
 }
 
+type EffectiveCost = {
+  estimatedCostUsd: number | null
+  pricing: AiUsagePricingSnapshot
+  stored: boolean
+}
+
 function usageLogPath() {
   const configuredPath = process.env.AI_USAGE_LOG_PATH
 
@@ -83,11 +89,16 @@ function formatCurrency(value: number | null, displayCurrency: AiUsageDisplayCur
     return 'Unpriced'
   }
 
+  const convertedValue = value * displayCurrency.rateFromUsd
+  const displayValue = convertedValue > 0 ? Math.ceil(convertedValue * 100) / 100 : 0
+
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: displayCurrency.code,
-    maximumFractionDigits: value * displayCurrency.rateFromUsd >= 1 ? 2 : 4
-  }).format(value * displayCurrency.rateFromUsd)
+    currencyDisplay: 'narrowSymbol',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(displayValue)
 }
 
 function safeDate(value: string | undefined) {
@@ -114,7 +125,8 @@ function parsePricingJson(model: string): AiUsagePricingSnapshot | null {
 
   try {
     const pricing = JSON.parse(rawPricing) as Record<string, Partial<AiUsagePricingSnapshot>>
-    const modelPricing = pricing[model]
+    const pricingKey = resolvePricingKey(pricing, model)
+    const modelPricing = pricingKey ? pricing[pricingKey] : null
 
     if (!modelPricing) {
       return null
@@ -125,11 +137,26 @@ function parsePricingJson(model: string): AiUsagePricingSnapshot | null {
       outputUsdPerMillion: modelPricing.outputUsdPerMillion ?? null,
       cachedInputUsdPerMillion: modelPricing.cachedInputUsdPerMillion ?? null,
       currency: 'USD',
-      source: 'AI_USAGE_PRICES_JSON'
+      source: pricingKey === model ? 'AI_USAGE_PRICES_JSON' : `AI_USAGE_PRICES_JSON:${pricingKey}`
     }
   } catch {
     return null
   }
+}
+
+function modelPricingAliases(model: string) {
+  const aliases = [model]
+  const datedSnapshotMatch = /^(.*)-\d{4}-\d{2}-\d{2}$/.exec(model)
+
+  if (datedSnapshotMatch?.[1]) {
+    aliases.push(datedSnapshotMatch[1])
+  }
+
+  return aliases
+}
+
+function resolvePricingKey(pricing: Record<string, Partial<AiUsagePricingSnapshot>>, model: string) {
+  return modelPricingAliases(model).find((alias) => pricing[alias])
 }
 
 function parseConversionJson() {
@@ -232,6 +259,28 @@ function calculateCostUsd(record: Omit<AiUsageRecord, 'estimatedCostUsd'>) {
   return Number((inputCost + cachedInputCost + outputCost).toFixed(8))
 }
 
+function effectiveCost(record: AiUsageRecord): EffectiveCost {
+  if (record.estimatedCostUsd !== null) {
+    return {
+      estimatedCostUsd: record.estimatedCostUsd,
+      pricing: record.pricing,
+      stored: true
+    }
+  }
+
+  const pricing = resolvePricing(record.model)
+  const estimatedCostUsd = calculateCostUsd({
+    ...record,
+    pricing
+  })
+
+  return {
+    estimatedCostUsd,
+    pricing,
+    stored: false
+  }
+}
+
 function normalizeRecord(input: UsageRecordInput): AiUsageRecord {
   const timestamp = safeDate(input.timestamp).toISOString()
   const model = input.model?.trim() || process.env.OPENAI_MODEL || 'unknown-model'
@@ -263,13 +312,15 @@ function normalizeRecord(input: UsageRecordInput): AiUsageRecord {
 }
 
 function recordPreview(record: AiUsageRecord): AiUsageRecordPreview {
+  const cost = effectiveCost(record)
+
   return {
     id: record.id,
     timestamp: record.timestamp,
     model: record.model,
     purpose: record.purpose,
     totalTokens: record.totalTokens,
-    estimatedCostUsd: record.estimatedCostUsd
+    estimatedCostUsd: cost.estimatedCostUsd
   }
 }
 
@@ -375,20 +426,25 @@ export async function getAiUsageSummary(): Promise<AiUsageDashboardSummary> {
   const todayRecords = records.filter((record) => localDateKey(new Date(record.timestamp)) === todayKey)
   const totalTokensToday = todayRecords.reduce((total, record) => total + record.totalTokens, 0)
   const totalTokensAllTime = records.reduce((total, record) => total + record.totalTokens, 0)
-  const pricedTodayRecords = todayRecords.filter((record) => record.estimatedCostUsd !== null)
-  const pricedRecords = records.filter((record) => record.estimatedCostUsd !== null)
-  const unpricedRecords = records.length - pricedRecords.length
-  const totalCostTodayUsd = pricedTodayRecords.length === todayRecords.length
-    ? pricedTodayRecords.reduce((total, record) => total + (record.estimatedCostUsd ?? 0), 0)
+  const todayCosts = todayRecords.map(effectiveCost)
+  const allCosts = records.map(effectiveCost)
+  const pricedTodayCosts = todayCosts.filter((cost) => cost.estimatedCostUsd !== null)
+  const pricedCosts = allCosts.filter((cost) => cost.estimatedCostUsd !== null)
+  const unpricedRecords = records.length - pricedCosts.length
+  const derivedPricedRecords = pricedCosts.filter((cost) => !cost.stored).length
+  const totalCostTodayUsd = pricedTodayCosts.length === todayCosts.length
+    ? pricedTodayCosts.reduce((total, cost) => total + (cost.estimatedCostUsd ?? 0), 0)
     : null
-  const totalCostAllTimeUsd = pricedRecords.length === records.length
-    ? pricedRecords.reduce((total, record) => total + (record.estimatedCostUsd ?? 0), 0)
+  const totalCostAllTimeUsd = pricedCosts.length === allCosts.length
+    ? pricedCosts.reduce((total, cost) => total + (cost.estimatedCostUsd ?? 0), 0)
     : null
   const recentRecords = records
     .sort((left, right) => Date.parse(right.timestamp) - Date.parse(left.timestamp))
     .slice(0, 6)
   const latestRecord = recentRecords[0]
-  const costHelper = unpricedRecords > 0 ? `${unpricedRecords} unpriced calls` : `${pricedRecords.length} priced calls`
+  const costHelper = unpricedRecords > 0
+    ? `${unpricedRecords} unpriced calls`
+    : `${pricedCosts.length} priced calls${derivedPricedRecords ? ` (${derivedPricedRecords} current)` : ''}`
 
   return {
     metrics: [
@@ -416,7 +472,7 @@ export async function getAiUsageSummary(): Promise<AiUsageDashboardSummary> {
         formatCurrency(totalCostTodayUsd, displayCurrency),
         todayRecords.length ? `${costHelper}${displayCurrency.converted ? ' converted' : ''}` : 'Configure pricing before calls',
         totalCostTodayUsd === null ? '#fbbf24' : '#4ade80',
-        hourlySeries(todayRecords, (record) => (record.estimatedCostUsd ?? 0) * displayCurrency.rateFromUsd),
+        hourlySeries(todayRecords, (record) => (effectiveCost(record).estimatedCostUsd ?? 0) * displayCurrency.rateFromUsd),
         totalCostTodayUsd === null && todayRecords.length ? 'warning' : 'neutral'
       ),
       metric(
@@ -425,7 +481,7 @@ export async function getAiUsageSummary(): Promise<AiUsageDashboardSummary> {
         formatCurrency(totalCostAllTimeUsd, displayCurrency),
         records.length ? `${costHelper}${displayCurrency.converted ? ' converted' : ''}` : 'All time',
         totalCostAllTimeUsd === null ? '#fbbf24' : '#a78bfa',
-        hourlySeries(records, (record) => (record.estimatedCostUsd ?? 0) * displayCurrency.rateFromUsd),
+        hourlySeries(records, (record) => (effectiveCost(record).estimatedCostUsd ?? 0) * displayCurrency.rateFromUsd),
         totalCostAllTimeUsd === null && records.length ? 'warning' : 'neutral'
       )
     ],

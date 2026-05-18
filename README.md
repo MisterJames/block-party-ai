@@ -280,7 +280,7 @@ Example environment values:
     STOCKER_BOT_NAME=Chesterton
     GATHERER_BOT_NAME=SpruceLee
 
-AI usage records store estimated costs in USD using the pricing snapshot available when the API call was made. `AI_CONVERT_PRICING_TO` only changes dashboard display totals; provide a USD conversion rate in `AI_CONVERSION_PRICES_JSON`, such as `{"CAD":1.3751}`, if you want costs shown in another currency.
+AI usage records store estimated costs in USD using the pricing snapshot available when the API call was made. `AI_CONVERT_PRICING_TO` only changes dashboard display totals; provide a USD conversion rate in `AI_CONVERSION_PRICES_JSON`, such as `{"CAD":1.3751}`, if you want costs shown in another currency. If OpenAI returns a dated snapshot model like `gpt-5.2-2025-12-11`, the app can use pricing configured for the base key `gpt-5.2`.
 
 ## Development roadmap
 
