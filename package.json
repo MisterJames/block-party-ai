@@ -16,8 +16,12 @@
     "@nuxt/ui": "3.3.7",
     "@pinia/nuxt": "latest",
     "echarts": "latest",
+    "minecraft-server-util": "^5.4.4",
+    "mineflayer": "^4.37.1",
+    "mineflayer-pathfinder": "^2.4.5",
     "nuxt": "3.21.6",
     "pinia": "latest",
+    "vec3": "^0.2.0",
     "vue-echarts": "latest"
   },
   "devDependencies": {
