@@ -1,3 +1,5 @@
+import type { CoordinationDashboardPayload } from './coordination'
+
 export type Severity = 'info' | 'success' | 'warning' | 'danger'
 
 export type BotStatus = 'Working' | 'Surveying' | 'Connecting' | 'Going To' | 'Paused' | 'Planned' | 'Waiting' | 'Offline' | 'Blocked' | 'Failed'
@@ -50,8 +52,8 @@ export interface JobRow {
   detail: string
   assigned: string
   progress: number
-  status: 'Running' | 'Queued' | 'Waiting'
-  approval: 'Approved' | 'Not required' | 'Pending'
+  status: 'Running' | 'Queued' | 'Waiting' | 'Proposed' | 'Blocked' | 'Completed'
+  approval: 'Approved' | 'Not required' | 'Pending' | 'Greenlit' | 'Rejected'
 }
 
 export interface ActivityEvent {
@@ -248,6 +250,7 @@ export interface DashboardOperationalStatus {
   localServer: LocalServerStatus
   worldConnection: WorldConnectionStatus
   maphew: MaphewStatus
+  coordination: CoordinationDashboardPayload
 }
 
 export interface SurveyMapTile extends SurveySampleRecord {

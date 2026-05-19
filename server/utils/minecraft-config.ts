@@ -91,7 +91,8 @@ export function getBotNames() {
     diggerWorker: process.env.DIGGER_WORKER_BOT_NAME?.trim() || 'Doug',
     blacksmith: process.env.BLACKSMITH_BOT_NAME?.trim() || 'AnvilAnnie',
     stocker: process.env.STOCKER_BOT_NAME?.trim() || 'Chesterton',
-    gatherer: process.env.GATHERER_BOT_NAME?.trim() || 'SpruceLee'
+    gatherer: process.env.GATHERER_BOT_NAME?.trim() || 'SpruceLee',
+    provisions: process.env.PROVISIONS_BOT_NAME?.trim() || 'Snackwella'
   }
 }
 
