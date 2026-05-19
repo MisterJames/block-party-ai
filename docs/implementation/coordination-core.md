@@ -87,7 +87,7 @@ During local e2e runs, the Nuxt dev server may also log transient Nuxt Fonts fet
 
 ## Follow-Ups
 
-* Phase 6 should add simulated chest and inventory state, item movement, dependency requests, and canned provisions/tooling flows.
+* Phase 6 is complete in `docs/implementation/logistics-simulation.md`: coordination state now migrates to version 2 with simulated chest/inventory state, item movement, dependency request resolution, and canned provisions/tooling/safe-setup flows.
 * Phase 7 should add real non-digger Mineflayer adapters that consume this coordination state instead of bypassing it.
 * Destructive dig, tunnel, chamber, and terrain mutation jobs remain out of scope until Phase 8.
 * Real OpenAI reusable plan authoring and AI-drafted template review remain out of scope until Phase 9.

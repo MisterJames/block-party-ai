@@ -29,6 +29,90 @@ export interface CoordinationLocation {
   label?: string
 }
 
+export interface LogisticsEndpoint {
+  type: 'bot' | 'chest' | 'world'
+  id: string
+  label: string
+}
+
+export interface ItemStack {
+  itemId: string
+  label: string
+  count: number
+}
+
+export interface LogisticsItemEffect {
+  kind: 'move' | 'consume' | 'produce' | 'stock' | 'deliver'
+  itemId: string
+  label: string
+  count: number
+  from: LogisticsEndpoint | null
+  to: LogisticsEndpoint | null
+}
+
+export interface ChestMinimum {
+  itemId: string
+  label: string
+  count: number
+}
+
+export interface ChestRecord {
+  id: string
+  label: string
+  kind: 'food' | 'seed' | 'tool' | 'material' | 'dump' | 'build' | 'furnace' | 'safe_setup'
+  purpose: string
+  ownerBotId: CrewBotId | null
+  location: CoordinationLocation
+  items: ItemStack[]
+  minimums: ChestMinimum[]
+  updatedAt: string
+}
+
+export interface BotInventoryRecord {
+  botId: CrewBotId
+  items: ItemStack[]
+  freeSlots: number
+  updatedAt: string
+}
+
+export interface LogisticsRecipe {
+  id: string
+  label: string
+  station: string
+  ownerBotId: CrewBotId
+  inputs: ItemStack[]
+  outputs: ItemStack[]
+}
+
+export interface ItemMovementRecord {
+  id: string
+  timestamp: string
+  jobId: string
+  stepId: string
+  kind: LogisticsItemEffect['kind']
+  itemId: string
+  label: string
+  count: number
+  from: LogisticsEndpoint | null
+  to: LogisticsEndpoint | null
+}
+
+export interface LogisticsState {
+  chests: ChestRecord[]
+  inventories: BotInventoryRecord[]
+  recipes: LogisticsRecipe[]
+  movements: ItemMovementRecord[]
+}
+
+export interface LowStockWarning {
+  chestId: string
+  chestLabel: string
+  itemId: string
+  label: string
+  current: number
+  minimum: number
+}
+
 export interface CrewBot {
   id: CrewBotId
   name: string
@@ -50,6 +134,7 @@ export interface JobStep {
   status: CoordinationStepStatus
   detail: string
   order: number
+  itemEffects?: LogisticsItemEffect[]
   startedAt: string | null
   completedAt: string | null
 }
@@ -163,7 +248,7 @@ export interface CoordinationEvent {
 }
 
 export interface CoordinationState {
-  version: 1
+  version: 2
   updatedAt: string
   crew: CrewBot[]
   goals: CrewGoal[]
@@ -172,18 +257,31 @@ export interface CoordinationState {
   templates: JobTemplate[]
   greenlights: GreenlightRule[]
   proposals: PlannerProposal[]
+  logistics: LogisticsState
 }
 
 export interface CoordinationDashboardPayload extends CoordinationState {
   requests: JobRequest[]
   events: CoordinationEvent[]
+  lowStockWarnings: LowStockWarning[]
   summary: {
     goalsOpen: number
     jobsActive: number
     jobsPendingApproval: number
     requestsOpen: number
     greenlightsEnabled: number
+    lowStockWarnings: number
+    movementsLogged: number
     storagePath: string
     eventLogPath: string
   }
+}
+
+export interface LogisticsDashboardPayload {
+  chests: ChestRecord[]
+  inventories: BotInventoryRecord[]
+  recipes: LogisticsRecipe[]
+  movements: ItemMovementRecord[]
+  lowStockWarnings: LowStockWarning[]
+  updatedAt: string
 }

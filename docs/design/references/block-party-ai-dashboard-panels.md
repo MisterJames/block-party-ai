@@ -22,6 +22,8 @@ The Phase 4 crew coordination planning slice is complete on `feature/crew-coordi
 
 The Phase 5 coordination core slice is complete on `feature/coordination-core`, with follow-up boundary cleanup on `feature/planner-jobs-boundary`. It adds JSON/JSONL-backed coordination state, seeded crew queues, reusable plans/templates, job requests, deterministic planner proposals, approval actions, greenlight rules, dashboard status wiring, `/planner` for planning/policy, and `/jobs` for execution queues. See `docs/implementation/coordination-core.md`.
 
+The Phase 6 logistics simulation slice is complete on `feature/phase-6-logistics-simulation`. It upgrades coordination state to version 2 with chest records, bot inventories, recipes, item movement history, step-level item effects, `POST /api/jobs/:id/simulate-step`, and `/chests` as the logistics command center. See `docs/implementation/logistics-simulation.md`.
+
 Phase 7 is reserved for real non-digger bot implementation. Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination should become real Mineflayer adapters before diggers or destructive mining are implemented. See `docs/implementation/non-digger-bot-implementation.md`.
 
 ## Crew coordination lexicon
@@ -641,7 +643,7 @@ Later, this could evolve into a richer top down Minecraft map renderer, but that
 
 ## Chests and items panel
 
-The chests and items section tracks known storage points and material availability.
+The chests and items section tracks known storage points and material availability. Phase 6 implements this as a simulated logistics command center backed by coordination state v2.
 
 Useful information:
 
@@ -683,9 +685,17 @@ Example:
       }
     }
 
-Bots can scan known chests and update local state.
+Bots can scan known chests and update local state in future real-bot phases. In Phase 6, only deterministic simulated job steps update chest and inventory state.
 
 The dashboard can show low stock warnings and suggest restocking jobs. Chesterton should be the default stocker/fetcher, Snackwella should own provisions and farming needs, AnvilAnnie should own tool crafting when the workflow exists, and Blocko can help with safe-zone setup and low-risk utility crafting.
+
+Current Phase 6 API/UI surface:
+
+    GET /api/chests
+    GET /api/inventories
+    POST /api/jobs/:id/simulate-step
+
+`/chests` shows the chest registry, selected chest contents, low-stock warnings, bot inventory snapshots, approved recipe shapes, and movement history. `/jobs` remains the execution command center and shows item effects plus the manual simulated step action for simulated workers.
 
 ## Logs page
 
@@ -832,7 +842,7 @@ A sensible implementation order:
 10. Event log
 11. Crew coordination design docs for goals, plans, jobs, steps, requests, templates, greenlight rules, and Snackwella
 12. Coordination core with job manager, bot queues, job requests, planner proposals, approvals, and greenlight enforcement (complete in Phase 5)
-13. Provisions, chests, tools, and safe setup workflows
+13. Provisions, chests, tools, and safe setup workflows (complete in Phase 6)
 14. Bot detail pages with queues, current step, requests, inventory, and job history
 15. Real non-digger bot adapters for Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination
 16. Digger crew and destructive approval gates

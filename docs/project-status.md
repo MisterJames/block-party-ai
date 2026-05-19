@@ -6,6 +6,7 @@ This page is the lightweight completion index for the repo. Update it when a tas
 
 | Slice | State | Branch | Notes |
 | --- | --- | --- | --- |
+| Phase 6 logistics simulation | Complete | `feature/phase-6-logistics-simulation` | Adds coordination state v2 logistics, simulated item effects, `/chests`, and manual simulated job advancement. See `docs/implementation/logistics-simulation.md`. |
 | Planner/jobs boundary cleanup | Complete | `feature/planner-jobs-boundary` | Moves proposal planning and greenlight policy to `/planner`; keeps `/jobs` focused on execution queues and concrete job actions. |
 | Phase 5 coordination core | Complete | `feature/coordination-core` | See `docs/implementation/coordination-core.md`. |
 | Phase 5-10 non-digger bot roadmap update | Complete | `feature/non-digger-bot-roadmap` | Inserts Phase 7 real non-digger bot implementation before diggers and shifts later phases down. |
@@ -26,7 +27,7 @@ This page is the lightweight completion index for the repo. Update it when a tas
 | Phase 3: Maphew site map | Complete | Render survey data as a rough pixelated map with layers and drill-downs. |
 | Phase 4: Crew coordination design | Complete | Docs-only lexicon and roadmap shuffle for goals, plans, jobs, steps, requests, templates, greenlight rules, and Snackwella. |
 | Phase 5: Coordination core | Complete | JSON/JSONL-backed coordination with `/planner` for goals/proposals/policy and `/jobs` for execution queues, concrete job approvals, steps, blockers, and requests. |
-| Phase 6: Provisions, chests, tools, and safe setup | Unstarted | Snackwella provisions/farming, Chesterton stocking, AnvilAnnie tools, Blocko safe-zone and utility crafting workflows. |
+| Phase 6: Provisions, chests, tools, and safe setup | Complete | Simulated Snackwella, Chesterton, AnvilAnnie, and Blocko workflows with chest/inventory state, item effects, recipes, low-stock warnings, and `/chests`. |
 | Phase 7: Non-digger bot implementation | Unstarted | Real Mineflayer adapters for Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination; no diggers or destructive mining. |
 | Phase 8: Digger crew | Unstarted | Digger roles, zone reservations, tunnel jobs, destructive approval gates. |
 | Phase 9: AI planner | Unstarted | Reusable plan authoring, AI-drafted template review, structured planning responses, job previews. |
@@ -36,6 +37,7 @@ This page is the lightweight completion index for the repo. Update it when a tas
 
 * `docs/design/block-party-ui-guidelines.md` - dashboard visual and component rules.
 * `docs/design/references/block-party-ai-dashboard-panels.md` - intended dashboard panels and future backend/API shape.
+* `docs/implementation/logistics-simulation.md` - completed Phase 6 logistics simulation, state v2 migration, APIs, UI, screenshots, and deferred real-bot work.
 * `docs/implementation/coordination-core.md` - completed Phase 5 coordination state, APIs, planner/jobs page boundary, verification, and follow-ups.
 * `docs/implementation/crew-coordination-planning.md` - Phase 4 coordination lexicon, roadmap shuffle, approval model, and implementation handoff.
 * `docs/implementation/non-digger-bot-implementation.md` - Phase 7 real non-digger bot adapter plan and safety boundaries.

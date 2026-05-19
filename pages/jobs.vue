@@ -199,6 +199,16 @@
                         @click="jobAction(selectedJob.id, 'cancel')"
                       />
                       <UButton
+                        v-if="canSimulate(selectedJob)"
+                        label="Simulate Step"
+                        icon="i-lucide-play"
+                        color="primary"
+                        variant="soft"
+                        size="xs"
+                        :loading="busyAction === selectedJob.id + ':simulate'"
+                        @click="simulateStep(selectedJob.id)"
+                      />
+                      <UButton
                         label="Request Help"
                         icon="i-lucide-message-square-warning"
                         color="neutral"
@@ -215,12 +225,37 @@
                     <div class="space-y-2">
                       <div v-for="step in selectedJob.steps" :key="step.id" class="rounded-md border border-slate-800 bg-slate-950/60 p-2">
                         <div class="flex items-center justify-between gap-2">
-                          <p class="font-medium text-slate-200">{{ step.order }}. {{ step.label }}</p>
+                        <p class="font-medium text-slate-200">{{ step.order }}. {{ step.label }}</p>
                           <UBadge color="neutral" variant="subtle" size="sm">{{ step.status }}</UBadge>
                         </div>
                         <p class="mt-1 text-slate-500">{{ step.detail || 'No extra detail.' }}</p>
+                        <div v-if="step.itemEffects?.length" class="mt-2 space-y-1">
+                          <div
+                            v-for="itemEffect in step.itemEffects"
+                            :key="`${step.id}:${itemEffect.kind}:${itemEffect.itemId}:${itemEffect.count}`"
+                            class="flex items-center justify-between gap-2 rounded border border-slate-800 bg-slate-900/70 px-2 py-1"
+                          >
+                            <span class="truncate text-slate-400">{{ effectRoute(itemEffect) }}</span>
+                            <UBadge color="info" variant="subtle" size="sm">{{ itemEffect.label }} x{{ itemEffect.count }}</UBadge>
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  </div>
+
+                  <div>
+                    <p class="mb-2 font-medium text-slate-200">Logistics Effects</p>
+                    <div v-if="selectedJob.steps.some((step) => step.itemEffects?.length)" class="space-y-2">
+                      <div
+                        v-for="step in selectedJob.steps.filter((step) => step.itemEffects?.length)"
+                        :key="`${step.id}:effects`"
+                        class="rounded-md border border-cyan-500/20 bg-cyan-500/10 p-2"
+                      >
+                        <p class="font-medium text-cyan-100">{{ step.label }}</p>
+                        <p class="mt-1 text-cyan-100/75">{{ step.itemEffects?.map(effectRoute).join(' · ') }}</p>
+                      </div>
+                    </div>
+                    <p v-else class="text-slate-500">No item movement for this job.</p>
                   </div>
 
                   <div>
@@ -247,7 +282,7 @@
 </template>
 
 <script setup lang="ts">
-import type { CoordinationDashboardPayload, CoordinationJobStatus, CoordinationApprovalState, CrewBotId } from '~/types/coordination'
+import type { CoordinationDashboardPayload, CoordinationJobStatus, CoordinationApprovalState, CrewBotId, CrewJob, LogisticsItemEffect } from '~/types/coordination'
 import type { DashboardMetric } from '~/types/dashboard'
 
 const store = useDashboardStore()
@@ -289,7 +324,7 @@ const coordinationMetrics = computed<DashboardMetric[]>(() => [
     id: 'coord-rules',
     label: 'Greenlights',
     value: String(coordination.value?.summary.greenlightsEnabled ?? 0),
-    helper: 'Conservative defaults enabled',
+    helper: `${coordination.value?.summary.lowStockWarnings ?? 0} low-stock warnings`,
     icon: 'i-lucide-badge-check',
     accent: 'cyan'
   },
@@ -340,6 +375,10 @@ async function requestHelp(id: string) {
   }))
 }
 
+async function simulateStep(id: string) {
+  await runAction(`${id}:simulate`, () => $fetch(`/api/jobs/${id}/simulate-step`, { method: 'POST' }))
+}
+
 async function runAction(label: string, action: () => Promise<unknown>) {
   try {
     busyAction.value = label
@@ -351,6 +390,19 @@ async function runAction(label: string, action: () => Promise<unknown>) {
   } finally {
     busyAction.value = ''
   }
+}
+
+function canSimulate(job: CrewJob) {
+  const bot = coordination.value?.crew.find((item) => item.id === job.assignedBotId)
+
+  return bot?.runtime === 'simulated' && !['cancelled', 'completed', 'rejected', 'failed'].includes(job.status)
+}
+
+function effectRoute(itemEffect: LogisticsItemEffect) {
+  if (itemEffect.kind === 'consume') return `${itemEffect.from?.label ?? 'Inventory'} -> consumed`
+  if (itemEffect.kind === 'produce') return `created -> ${itemEffect.to?.label ?? 'Inventory'}`
+
+  return `${itemEffect.from?.label ?? 'Source'} -> ${itemEffect.to?.label ?? 'Target'}`
 }
 
 function botName(id: CrewBotId) {

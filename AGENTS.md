@@ -31,7 +31,7 @@ Use `docs/design/references/dashboard-overview-ai-usage.png` as a strong visual 
 - Current roadmap priority is coordination before more destructive or specialized bot work.
 - Treat Phase 4 as a docs/design phase for goals, reusable plans, jobs, steps, bot requests, templates, greenlight rules, and capability boundaries.
 - Treat Phase 5 as the completed first implementation of the coordination core: JSON/JSONL-backed goals, reusable plans, jobs, steps, queues, requests, deterministic planner proposals, approvals, greenlight rules, events, and `/jobs` command center. See `docs/implementation/coordination-core.md`.
-- Treat Phase 6 as simulated provisions, chests, tools, and safe setup so the crew economy can be exercised before additional Mineflayer bots connect.
+- Treat Phase 6 as completed simulated provisions, chests, tools, and safe setup: coordination state v2 logistics, chest registry, bot inventories, recipes, item movements, manual simulated job advancement, and `/chests`. See `docs/implementation/logistics-simulation.md`.
 - Treat Phase 7 as real non-digger bot implementation for Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination. Do not implement diggers or destructive mining in Phase 7.
 - Treat Phase 8 as the first digger/destructive-work phase, after coordination and non-digger bot adapters exist.
 - Treat Phase 9 as real AI planner authoring, and Phase 10 as the coaster prototype.
