@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { $fetch } from 'ofetch'
-import type { ActivityEvent, AiUsageDashboardSummary, BotRow, BotStatus, DashboardMetric, DashboardOperationalStatus, HealthStat, JobRow, LocalServerStatus, MaphewStatus, SparklineMetric, WorldConnectionStatus, WorldSummary } from '~/types/dashboard'
+import type { ActivityEvent, AiUsageDashboardSummary, BotRow, BotStatus, DashboardMetric, DashboardOperationalStatus, HealthStat, JobRow, LocalServerStatus, MaphewStatus, NonDiggerCrewBotId, NonDiggerCrewStatus, SparklineMetric, WorldConnectionStatus, WorldSummary } from '~/types/dashboard'
 import type { CoordinationDashboardPayload, CoordinationJobStatus, CoordinationApprovalState, CrewBot } from '~/types/coordination'
 
 const plannedCrew: BotRow[] = [
@@ -106,6 +106,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const operationalError = ref('')
   const localServerActionError = ref('')
   const maphewActionError = ref('')
+  const nonDiggerActionError = ref('')
   const operationalTimer = ref<ReturnType<typeof setInterval> | null>(null)
 
   const aiUsage = ref<SparklineMetric[]>([
@@ -155,12 +156,13 @@ export const useDashboardStore = defineStore('dashboard', () => {
   })
 
   const maphewStatus = computed<MaphewStatus | null>(() => operationalStatus.value?.maphew ?? null)
+  const nonDiggerCrew = computed<NonDiggerCrewStatus[]>(() => operationalStatus.value?.nonDiggerCrew ?? [])
   const coordination = computed<CoordinationDashboardPayload | null>(() => operationalStatus.value?.coordination ?? null)
   const localServer = computed<LocalServerStatus | null>(() => operationalStatus.value?.localServer ?? null)
   const worldConnection = computed<WorldConnectionStatus | null>(() => operationalStatus.value?.worldConnection ?? null)
   const survey = computed(() => maphewStatus.value?.survey ?? null)
 
-  const botsOnline = computed(() => maphewStatus.value?.connected ? 1 : 0)
+  const botsOnline = computed(() => (maphewStatus.value?.connected ? 1 : 0) + nonDiggerCrew.value.filter((bot) => bot.connected).length)
   const crewTotal = computed(() => coordination.value?.crew.length ?? 8)
   const surveyRunning = computed(() => maphewStatus.value?.state === 'surveying')
 
@@ -176,7 +178,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
 
     return [
       maphewRow(maphewStatus.value, crew.find((bot) => bot.id === 'maphew')),
-      ...crew.filter((bot) => bot.id !== 'maphew').map(coordinationBotRow)
+      ...crew.filter((bot) => bot.id !== 'maphew').map((bot) => coordinationBotRow(bot, nonDiggerCrew.value.find((runtime) => runtime.id === bot.id)))
     ]
   })
 
@@ -286,7 +288,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
       id: 'bots-online',
       label: 'Bots Online',
       value: `${botsOnline.value} / ${crewTotal.value}`,
-      helper: botsOnline.value ? 'Maphew connected; crew simulated' : 'No bots auto-connected',
+      helper: botsOnline.value ? 'Connected crew adapters online' : 'No bots auto-connected',
       icon: 'i-lucide-bot',
       accent: 'green'
     },
@@ -410,6 +412,26 @@ export const useDashboardStore = defineStore('dashboard', () => {
     await maphewAction('/api/bots/maphew/survey/stop')
   }
 
+  async function connectNonDiggerBot(id: NonDiggerCrewBotId) {
+    await nonDiggerAction(`/api/bots/non-diggers/${id}/connect`)
+  }
+
+  async function disconnectNonDiggerBot(id: NonDiggerCrewBotId) {
+    await nonDiggerAction(`/api/bots/non-diggers/${id}/disconnect`)
+  }
+
+  async function connectNonDiggerCrew() {
+    await nonDiggerAction('/api/bots/non-diggers/connect')
+  }
+
+  async function disconnectNonDiggerCrew() {
+    await nonDiggerAction('/api/bots/non-diggers/disconnect')
+  }
+
+  async function executeNonDiggerStep(id: NonDiggerCrewBotId) {
+    await nonDiggerAction(`/api/bots/non-diggers/${id}/execute-step`)
+  }
+
   async function maphewAction(path: string) {
     try {
       await $fetch(path, { method: 'POST' })
@@ -417,6 +439,17 @@ export const useDashboardStore = defineStore('dashboard', () => {
       await refreshOperationalStatus()
     } catch (error) {
       maphewActionError.value = error instanceof Error ? error.message : 'Unable to update Maphew'
+      await refreshOperationalStatus()
+    }
+  }
+
+  async function nonDiggerAction(path: string) {
+    try {
+      await $fetch(path, { method: 'POST' })
+      nonDiggerActionError.value = ''
+      await refreshOperationalStatus()
+    } catch (error) {
+      nonDiggerActionError.value = error instanceof Error ? error.message : 'Unable to update non-digger crew'
       await refreshOperationalStatus()
     }
   }
@@ -438,11 +471,18 @@ export const useDashboardStore = defineStore('dashboard', () => {
     operationalError,
     operationalStatus,
     coordination,
+    nonDiggerCrew,
+    nonDiggerActionError,
     survey,
     worldConnection,
     worldSummary,
+    connectNonDiggerBot,
+    connectNonDiggerCrew,
     connectMaphew,
+    disconnectNonDiggerBot,
+    disconnectNonDiggerCrew,
     disconnectMaphew,
+    executeNonDiggerStep,
     refreshAiUsage,
     refreshOperationalStatus,
     startLocalServer,
@@ -472,8 +512,10 @@ function maphewRow(status: MaphewStatus | null, crewBot?: CrewBot): BotRow {
   }
 }
 
-function coordinationBotRow(bot: CrewBot): BotRow {
-  const status = coordinationBotStatus(bot)
+function coordinationBotRow(bot: CrewBot, runtime?: NonDiggerCrewStatus): BotRow {
+  const status = runtime ? nonDiggerBotStatus(runtime) : coordinationBotStatus(bot)
+
+  const currentJobId = runtime?.currentJobId ?? bot.currentJobId
 
   return {
     id: bot.id,
@@ -482,12 +524,21 @@ function coordinationBotRow(bot: CrewBot): BotRow {
     avatar: bot.avatar,
     status,
     statusTone: coordinationBotTone(status),
-    currentJob: bot.currentJobId ? 'Queued coordination job' : bot.runtime === 'planned' ? 'Placeholder crew role' : 'Ready for simulated work',
-    jobDetail: bot.queueLength ? `${bot.queueLength} queued · ${bot.inventorySummary}` : bot.inventorySummary,
-    location: bot.locationLabel,
-    tool: bot.runtime === 'real' ? 'Runtime' : bot.runtime === 'simulated' ? 'Sim' : 'Pending',
+    currentJob: currentJobId ? 'Queued coordination job' : bot.runtime === 'planned' ? 'Placeholder crew role' : 'Ready for work',
+    jobDetail: runtime ? `${runtime.mode} adapter · ${runtime.currentJobLabel}` : bot.queueLength ? `${bot.queueLength} queued · ${bot.inventorySummary}` : bot.inventorySummary,
+    location: runtime?.position ? `${runtime.position.x}, ${runtime.position.y}, ${runtime.position.z}` : bot.locationLabel,
+    tool: runtime?.connected ? 'Real' : bot.runtime === 'real' ? 'Runtime' : bot.runtime === 'simulated' ? 'Fallback' : 'Pending',
     inventoryPercent: bot.queueLength ? Math.min(100, bot.queueLength * 25) : null
   }
+}
+
+function nonDiggerBotStatus(status: NonDiggerCrewStatus): BotStatus {
+  if (status.state === 'executing') return 'Working'
+  if (status.state === 'connected') return 'Waiting'
+  if (status.state === 'connecting') return 'Connecting'
+  if (status.state === 'blocked') return 'Blocked'
+  if (status.state === 'failed') return 'Failed'
+  return 'Offline'
 }
 
 function maphewLabel(status: MaphewStatus | null): BotStatus {

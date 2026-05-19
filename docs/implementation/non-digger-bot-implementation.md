@@ -2,9 +2,11 @@
 
 ## State
 
-Planned for Phase 7.
+Phase 7 adapter lifecycle is complete in `docs/implementation/non-digger-bot-adapters.md`.
 
 This phase turns the simulated non-digger crew from Phase 6 into real Mineflayer bot adapters while leaving diggers, clear-volume jobs, tunnel work, chamber work, and other destructive terrain mutation for Phase 8.
+
+The completed first pass proves shared connection lifecycle, chat announcements, fallback execution, and authoritative backend step advancement. Physical chest opening, item transfers, crafting-table use, planting, and harvesting remain follow-up hardening before these bots should be treated as fully autonomous in-world workers.
 
 ## Purpose
 

@@ -32,7 +32,7 @@ Use `docs/design/references/dashboard-overview-ai-usage.png` as a strong visual 
 - Treat Phase 4 as a docs/design phase for goals, reusable plans, jobs, steps, bot requests, templates, greenlight rules, and capability boundaries.
 - Treat Phase 5 as the completed first implementation of the coordination core: JSON/JSONL-backed goals, reusable plans, jobs, steps, queues, requests, deterministic planner proposals, approvals, greenlight rules, events, and `/jobs` command center. See `docs/implementation/coordination-core.md`.
 - Treat Phase 6 as completed simulated provisions, chests, tools, and safe setup: coordination state v2 logistics, chest registry, bot inventories, recipes, item movements, manual simulated job advancement, and `/chests`. See `docs/implementation/logistics-simulation.md`.
-- Treat Phase 7 as real non-digger bot implementation for Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination. Do not implement diggers or destructive mining in Phase 7.
+- Treat Phase 7 as completed real non-digger adapter lifecycle work for Snackwella, Chesterton, AnvilAnnie, and Blocko. The shared adapters can connect real Mineflayer clients, keep digging disabled, announce in chat, and execute approved/greenlit non-digger steps through authoritative backend state. See `docs/implementation/non-digger-bot-adapters.md`.
 - Treat Phase 8 as the first digger/destructive-work phase, after coordination and non-digger bot adapters exist.
 - Treat Phase 9 as real AI planner authoring, and Phase 10 as the coaster prototype.
 - Snackwella is part of the named crew as the Provisions / Farming bot. Include her in future crew planning alongside Maphew, Chesterton, AnvilAnnie, Blocko, SpruceLee, CaptainCobble, and Doug.

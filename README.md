@@ -407,11 +407,13 @@ The dashboard starts idle. Use the Local World dropdown to start or stop the con
 ### Phase 7: Non-digger bot implementation
 
 * Add a shared real bot adapter contract for accepting jobs, executing steps, emitting events, creating requests, and announcing status in Minecraft chat
-* Turn simulated non-digger crew workflows into real Mineflayer adapters
-* Implement real low-risk work for Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination
-* Keep greenlight enforcement, queue ownership, and step tracking authoritative in the backend
+* Add connect/disconnect APIs for Snackwella, Chesterton, AnvilAnnie, and Blocko
+* Keep digging disabled in the Mineflayer pathfinder configuration for non-digger adapters
+* Allow connected adapters, or fallback adapters when no server is available, to advance one approved or greenlit non-digger step through the authoritative coordination state machine
+* Add `/bots` controls for non-digger crew connection, fallback execution, runtime state, and latest announcements
+* Keep greenlight enforcement, queue ownership, step tracking, and item accounting authoritative in the backend
 * Do not implement dig, clear-volume, tunnel, chamber, or large terrain mutation jobs in this phase
-* Planned implementation notes: `docs/implementation/non-digger-bot-implementation.md`
+* Completed implementation notes: `docs/implementation/non-digger-bot-adapters.md`
 
 ### Phase 8: Digger crew
 

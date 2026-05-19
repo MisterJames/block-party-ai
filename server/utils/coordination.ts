@@ -1386,6 +1386,36 @@ export async function simulateJobStep(id: string) {
   return getCoordinationDashboard()
 }
 
+export async function updateCrewBotRuntime(input: {
+  botId: CrewBotId
+  runtime?: CrewBot['runtime']
+  status?: CrewBot['status']
+  currentJobId?: string | null
+  inventorySummary?: string
+  locationLabel?: string
+}) {
+  const state = await readCoordinationState()
+  const bot = state.crew.find((item) => item.id === input.botId)
+
+  if (!bot) {
+    throw new Error('Crew bot not found')
+  }
+
+  if (input.runtime) bot.runtime = input.runtime
+  if (input.status) bot.status = input.status
+  if ('currentJobId' in input) bot.currentJobId = input.currentJobId ?? null
+  if (input.inventorySummary) bot.inventorySummary = input.inventorySummary
+  if (input.locationLabel) bot.locationLabel = input.locationLabel
+  bot.lastActivityAt = now()
+
+  await saveState(state)
+  return getCoordinationDashboard()
+}
+
+export async function recordCoordinationEvent(event: Omit<CoordinationEvent, 'id' | 'timestamp'>) {
+  return appendEvent(event)
+}
+
 export async function createGoal(input: { label?: string, detail?: string, planId?: string | null }) {
   const state = await readCoordinationState()
   const timestamp = now()
