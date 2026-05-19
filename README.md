@@ -395,16 +395,14 @@ The dashboard starts idle. Use the Local World dropdown to start or stop the con
 
 ### Phase 6: Provisions, chests, tools, and safe setup
 
-* Add known chest registry
-* Add inventory summaries
-* Add Snackwella farming, food, and seed workflows
-* Add dump chest deposits
-* Add tool chest withdrawals
-* Add basic crafting jobs
-* Add furnace support
-* Add tool restocking
-* Add item transfer jobs between chests
-* Add Blocko safe-zone and utility crafting workflows such as torches and compasses
+* Add coordination state v2 logistics with known chests, bot inventories, recipes, and item movement history
+* Add read-time migration from version 1 coordination state without resetting existing goals, jobs, proposals, or greenlights
+* Add step-level item effects for move, consume, produce, stock, and deliver
+* Add manual simulated advancement through `POST /api/jobs/:id/simulate-step`
+* Add Snackwella food and seed support, Chesterton item fetching, AnvilAnnie tool crafting, and Blocko safe setup crate workflows
+* Add `/chests` as the logistics command center for storage, inventories, low stock, recipes, and movement history
+* Enrich `/jobs` with logistics effects and manual simulated step controls
+* Completed implementation notes: `docs/implementation/logistics-simulation.md`
 
 ### Phase 7: Non-digger bot implementation
 

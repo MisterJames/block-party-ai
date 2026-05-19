@@ -12,17 +12,26 @@ import type {
   CrewJob,
   CrewPlan,
   GreenlightRule,
+  ItemMovementRecord,
+  ItemStack,
   JobRequest,
   JobStep,
   JobTemplate,
+  LogisticsDashboardPayload,
+  LogisticsEndpoint,
+  LogisticsItemEffect,
+  LogisticsState,
+  LowStockWarning,
   PlannerProposal
 } from '../../types/coordination'
 import { formatLocalPath } from './minecraft-config'
 
 type PlannerKind = 'foundry' | 'hoe' | 'food'
 
-const stateVersion = 1
+const stateVersion = 2
 const completedJobStates = new Set<CoordinationJobStatus>(['completed', 'cancelled', 'rejected', 'failed'])
+const terminalJobStates = new Set<CoordinationJobStatus>(['completed', 'cancelled', 'rejected', 'failed'])
+const runnableApprovals = new Set<CrewJob['approval']>(['approved', 'greenlit', 'not_required'])
 
 function now() {
   return new Date().toISOString()
@@ -43,12 +52,43 @@ function getCoordinationPaths() {
   }
 }
 
-function step(id: string, label: string, order: number, detail = ''): JobStep {
+function chestEndpoint(id: string, label: string): LogisticsEndpoint {
+  return { type: 'chest', id, label }
+}
+
+function botEndpoint(id: CrewBotId, label: string): LogisticsEndpoint {
+  return { type: 'bot', id, label }
+}
+
+function item(itemId: string, label: string, count: number): ItemStack {
+  return { itemId, label, count }
+}
+
+function effect(params: {
+  kind: LogisticsItemEffect['kind']
+  itemId: string
+  label: string
+  count: number
+  from?: LogisticsEndpoint | null
+  to?: LogisticsEndpoint | null
+}): LogisticsItemEffect {
+  return {
+    kind: params.kind,
+    itemId: params.itemId,
+    label: params.label,
+    count: params.count,
+    from: params.from ?? null,
+    to: params.to ?? null
+  }
+}
+
+function step(id: string, label: string, order: number, detail = '', itemEffects: LogisticsItemEffect[] = []): JobStep {
   return {
     id,
     label,
     order,
     detail,
+    itemEffects,
     status: 'pending',
     startedAt: null,
     completedAt: null
@@ -227,6 +267,15 @@ function seedTemplates(): JobTemplate[] {
       destructive: false,
       stepLabels: ['Check build location', 'Confirm materials', 'Place approved blocks'],
       enabled: true
+    },
+    {
+      id: 'safe_zone_setup',
+      label: 'Safe Zone Setup',
+      category: 'build',
+      defaultBotId: 'blocko',
+      destructive: false,
+      stepLabels: ['Prepare torches', 'Craft compass', 'Stock safe setup crate'],
+      enabled: true
     }
   ]
 }
@@ -251,17 +300,161 @@ function seedGreenlights(timestamp: string): GreenlightRule[] {
       id: 'greenlight-common-logistics',
       label: 'Common simulated fetch, craft, farm, and stock work',
       enabled: true,
-      templateIds: ['fetch_item', 'craft_item', 'farm_food', 'stock_chest'],
+      templateIds: ['fetch_item', 'craft_item', 'farm_food', 'stock_chest', 'safe_zone_setup'],
       botIds: ['snackwella', 'chesterton', 'anvilannie', 'blocko'],
       maxItemCount: 64,
       allowBlockPlacement: false,
       allowBlockBreaking: false,
       allowPlannerCalls: false,
-      notes: 'Phase 5 coordination demo only; non-Maphew bots remain simulated.',
+      notes: 'Phase 6 simulated logistics only; non-Maphew bots remain simulated.',
       createdAt: timestamp,
       updatedAt: timestamp
     }
   ]
+}
+
+function seedLogistics(timestamp: string): LogisticsState {
+  return {
+    chests: [
+      {
+        id: 'chest-seed-store',
+        label: 'Seed Store',
+        kind: 'seed',
+        purpose: 'Starter crops and farm inputs for Snackwella.',
+        ownerBotId: 'snackwella',
+        location: { x: 3, y: 64, z: 5, label: 'Farm shed' },
+        items: [item('wheat_seeds', 'Wheat Seeds', 18), item('carrot', 'Carrots', 9)],
+        minimums: [item('wheat_seeds', 'Wheat Seeds', 12)],
+        updatedAt: timestamp
+      },
+      {
+        id: 'chest-food-crate',
+        label: 'Food Crate',
+        kind: 'food',
+        purpose: 'Prepared food bundles for hungry workers.',
+        ownerBotId: 'snackwella',
+        location: { x: 4, y: 64, z: 4, label: 'Farm plot' },
+        items: [item('bread', 'Bread', 5), item('carrot', 'Carrots', 9)],
+        minimums: [item('bread', 'Bread', 6)],
+        updatedAt: timestamp
+      },
+      {
+        id: 'chest-workshop-materials',
+        label: 'Workshop Materials',
+        kind: 'material',
+        purpose: 'Common crafting inputs for AnvilAnnie and Blocko.',
+        ownerBotId: 'anvilannie',
+        location: { x: 6, y: 64, z: 2, label: 'Workshop' },
+        items: [
+          item('oak_planks', 'Oak Planks', 24),
+          item('stick', 'Sticks', 20),
+          item('cobblestone', 'Cobblestone', 48),
+          item('coal', 'Coal', 12),
+          item('iron_ingot', 'Iron Ingots', 8),
+          item('redstone_dust', 'Redstone Dust', 3)
+        ],
+        minimums: [item('stick', 'Sticks', 12), item('coal', 'Coal', 8), item('iron_ingot', 'Iron Ingots', 4)],
+        updatedAt: timestamp
+      },
+      {
+        id: 'chest-tool-rack',
+        label: 'Tool Rack',
+        kind: 'tool',
+        purpose: 'Shared low-risk tools for provisions and utility jobs.',
+        ownerBotId: 'anvilannie',
+        location: { x: 7, y: 64, z: 2, label: 'Workshop' },
+        items: [item('stone_pickaxe', 'Stone Pickaxe', 2)],
+        minimums: [item('wooden_hoe', 'Wooden Hoe', 1), item('stone_pickaxe', 'Stone Pickaxe', 2)],
+        updatedAt: timestamp
+      },
+      {
+        id: 'chest-safe-setup',
+        label: 'Safe Setup Crate',
+        kind: 'safe_setup',
+        purpose: 'Torches, compass support, and utility supplies for Blocko.',
+        ownerBotId: 'blocko',
+        location: { x: 0, y: 64, z: 0, label: 'Base camp' },
+        items: [item('torch', 'Torches', 12)],
+        minimums: [item('torch', 'Torches', 32), item('compass', 'Compass', 1)],
+        updatedAt: timestamp
+      },
+      {
+        id: 'chest-foundry-coal',
+        label: 'Foundry Coal Chest',
+        kind: 'furnace',
+        purpose: 'Fuel reserve for the reusable foundry plan.',
+        ownerBotId: 'chesterton',
+        location: { x: 10, y: 64, z: 8, label: 'Foundry site' },
+        items: [item('coal', 'Coal', 0)],
+        minimums: [item('coal', 'Coal', 48)],
+        updatedAt: timestamp
+      },
+      {
+        id: 'chest-foundry-ore',
+        label: 'Foundry Ore Chest',
+        kind: 'furnace',
+        purpose: 'Iron ore reserve for the reusable foundry plan.',
+        ownerBotId: 'chesterton',
+        location: { x: 11, y: 64, z: 8, label: 'Foundry site' },
+        items: [item('iron_ore', 'Iron Ore', 0)],
+        minimums: [item('iron_ore', 'Iron Ore', 48)],
+        updatedAt: timestamp
+      },
+      {
+        id: 'chest-dump',
+        label: 'Dump Chest',
+        kind: 'dump',
+        purpose: 'Temporary intake for unsorted common materials.',
+        ownerBotId: 'chesterton',
+        location: { x: 2, y: 64, z: 2, label: 'Storage' },
+        items: [item('dirt', 'Dirt', 32), item('cobblestone', 'Cobblestone', 16)],
+        minimums: [],
+        updatedAt: timestamp
+      }
+    ],
+    inventories: [
+      { botId: 'maphew', items: [item('bread', 'Bread', 1)], freeSlots: 34, updatedAt: timestamp },
+      { botId: 'snackwella', items: [], freeSlots: 36, updatedAt: timestamp },
+      { botId: 'chesterton', items: [], freeSlots: 36, updatedAt: timestamp },
+      { botId: 'anvilannie', items: [], freeSlots: 36, updatedAt: timestamp },
+      { botId: 'blocko', items: [], freeSlots: 36, updatedAt: timestamp }
+    ],
+    recipes: [
+      {
+        id: 'recipe-wooden-hoe',
+        label: 'Wooden Hoe',
+        station: 'Crafting Table',
+        ownerBotId: 'anvilannie',
+        inputs: [item('oak_planks', 'Oak Planks', 2), item('stick', 'Sticks', 2)],
+        outputs: [item('wooden_hoe', 'Wooden Hoe', 1)]
+      },
+      {
+        id: 'recipe-torches',
+        label: 'Torches',
+        station: 'Crafting Grid',
+        ownerBotId: 'blocko',
+        inputs: [item('coal', 'Coal', 1), item('stick', 'Sticks', 1)],
+        outputs: [item('torch', 'Torches', 4)]
+      },
+      {
+        id: 'recipe-compass',
+        label: 'Compass',
+        station: 'Crafting Table',
+        ownerBotId: 'blocko',
+        inputs: [item('iron_ingot', 'Iron Ingots', 4), item('redstone_dust', 'Redstone Dust', 1)],
+        outputs: [item('compass', 'Compass', 1)]
+      },
+      {
+        id: 'recipe-bread-bundle',
+        label: 'Maphew Food Bundle',
+        station: 'Food Crate',
+        ownerBotId: 'snackwella',
+        inputs: [item('bread', 'Bread', 2)],
+        outputs: [item('bread', 'Bread', 2)]
+      }
+    ],
+    movements: []
+  }
 }
 
 function seedPlans(timestamp: string): CrewPlan[] {
@@ -321,7 +514,16 @@ function seedJobs(timestamp: string): CrewJob[] {
       progressPercent: 10,
       steps: [
         step('step-check-food', 'Check food stores', 1, 'Confirm available bread, carrots, or wheat.'),
-        step('step-prepare-food', 'Prepare food bundle', 2, 'Assemble a small delivery for Maphew.')
+        step('step-prepare-food', 'Prepare food bundle', 2, 'Assemble a small delivery for Maphew.', [
+          effect({
+            kind: 'deliver',
+            itemId: 'bread',
+            label: 'Bread',
+            count: 2,
+            from: chestEndpoint('chest-food-crate', 'Food Crate'),
+            to: botEndpoint('maphew', 'Maphew')
+          })
+        ])
       ],
       requests: [
         {
@@ -359,7 +561,16 @@ function seedJobs(timestamp: string): CrewJob[] {
       progressPercent: 0,
       steps: [
         step('step-find-storage', 'Check known storage', 1, 'Look for seeds in registered storage.'),
-        step('step-deliver-seeds', 'Deliver seeds', 2, 'Bring seeds to Snackwella.')
+        step('step-deliver-seeds', 'Deliver seeds', 2, 'Bring seeds to Snackwella.', [
+          effect({
+            kind: 'deliver',
+            itemId: 'wheat_seeds',
+            label: 'Wheat Seeds',
+            count: 8,
+            from: chestEndpoint('chest-seed-store', 'Seed Store'),
+            to: botEndpoint('snackwella', 'Snackwella')
+          })
+        ])
       ],
       requests: [],
       dependencies: [],
@@ -382,12 +593,120 @@ function seedJobs(timestamp: string): CrewJob[] {
       destructive: false,
       progressPercent: 0,
       steps: [
-        step('step-craft-hoe', 'Craft hoe', 1, 'Use common materials to craft a starter hoe.')
+        step('step-craft-hoe', 'Craft hoe', 1, 'Use common materials to craft a starter hoe.', [
+          effect({
+            kind: 'consume',
+            itemId: 'oak_planks',
+            label: 'Oak Planks',
+            count: 2,
+            from: chestEndpoint('chest-workshop-materials', 'Workshop Materials')
+          }),
+          effect({
+            kind: 'consume',
+            itemId: 'stick',
+            label: 'Sticks',
+            count: 2,
+            from: chestEndpoint('chest-workshop-materials', 'Workshop Materials')
+          }),
+          effect({
+            kind: 'produce',
+            itemId: 'wooden_hoe',
+            label: 'Wooden Hoe',
+            count: 1,
+            to: chestEndpoint('chest-tool-rack', 'Tool Rack')
+          })
+        ])
       ],
       requests: [],
       dependencies: [],
       greenlightRuleId: null,
       location: { x: 6, z: 2, label: 'Workshop' },
+      createdBy: 'seed',
+      createdAt: timestamp,
+      updatedAt: timestamp
+    },
+    {
+      id: 'job-safe-setup',
+      goalId: 'goal-safe-setup',
+      planId: null,
+      templateId: 'safe_zone_setup',
+      label: 'Prepare safe setup crate',
+      detail: 'Blocko simulates utility prep for torches and compass support without placing blocks.',
+      assignedBotId: 'blocko',
+      status: 'queued',
+      approval: 'greenlit',
+      destructive: false,
+      progressPercent: 0,
+      steps: [
+        step('step-craft-torches', 'Prepare torches', 1, 'Use coal and sticks to prepare a torch bundle.', [
+          effect({
+            kind: 'consume',
+            itemId: 'coal',
+            label: 'Coal',
+            count: 5,
+            from: chestEndpoint('chest-workshop-materials', 'Workshop Materials')
+          }),
+          effect({
+            kind: 'consume',
+            itemId: 'stick',
+            label: 'Sticks',
+            count: 5,
+            from: chestEndpoint('chest-workshop-materials', 'Workshop Materials')
+          }),
+          effect({
+            kind: 'produce',
+            itemId: 'torch',
+            label: 'Torches',
+            count: 20,
+            to: botEndpoint('blocko', 'Blocko')
+          })
+        ]),
+        step('step-craft-compass', 'Craft compass', 2, 'Create one compass for Maphew support.', [
+          effect({
+            kind: 'consume',
+            itemId: 'iron_ingot',
+            label: 'Iron Ingots',
+            count: 4,
+            from: chestEndpoint('chest-workshop-materials', 'Workshop Materials')
+          }),
+          effect({
+            kind: 'consume',
+            itemId: 'redstone_dust',
+            label: 'Redstone Dust',
+            count: 1,
+            from: chestEndpoint('chest-workshop-materials', 'Workshop Materials')
+          }),
+          effect({
+            kind: 'produce',
+            itemId: 'compass',
+            label: 'Compass',
+            count: 1,
+            to: botEndpoint('blocko', 'Blocko')
+          })
+        ]),
+        step('step-stock-safe-crate', 'Stock safe setup crate', 3, 'Move utility supplies into the safe setup crate.', [
+          effect({
+            kind: 'stock',
+            itemId: 'torch',
+            label: 'Torches',
+            count: 20,
+            from: botEndpoint('blocko', 'Blocko'),
+            to: chestEndpoint('chest-safe-setup', 'Safe Setup Crate')
+          }),
+          effect({
+            kind: 'stock',
+            itemId: 'compass',
+            label: 'Compass',
+            count: 1,
+            from: botEndpoint('blocko', 'Blocko'),
+            to: chestEndpoint('chest-safe-setup', 'Safe Setup Crate')
+          })
+        ])
+      ],
+      requests: [],
+      dependencies: [],
+      greenlightRuleId: 'greenlight-common-logistics',
+      location: { x: 0, z: 0, label: 'Base camp' },
       createdBy: 'seed',
       createdAt: timestamp,
       updatedAt: timestamp
@@ -426,6 +745,16 @@ function seedGoals(timestamp: string): CrewGoal[] {
       planId: null,
       createdAt: timestamp,
       updatedAt: timestamp
+    },
+    {
+      id: 'goal-safe-setup',
+      label: 'Prepare safe setup',
+      detail: 'Stock non-destructive utility supplies before larger work starts.',
+      status: 'active',
+      source: 'seed',
+      planId: null,
+      createdAt: timestamp,
+      updatedAt: timestamp
     }
   ]
 }
@@ -442,7 +771,203 @@ function seedState(): CoordinationState {
     jobs: seedJobs(timestamp),
     templates: seedTemplates(),
     greenlights: seedGreenlights(timestamp),
-    proposals: []
+    proposals: [],
+    logistics: seedLogistics(timestamp)
+  }
+}
+
+function mergeMissingSeedData(state: CoordinationState) {
+  const timestamp = now()
+  const seeded = seedState()
+  const templateIds = new Set(state.templates.map((template) => template.id))
+  const goalIds = new Set(state.goals.map((goal) => goal.id))
+  const jobIds = new Set(state.jobs.map((job) => job.id))
+  const greenlightIds = new Set(state.greenlights.map((rule) => rule.id))
+
+  state.templates.push(...seeded.templates.filter((template) => !templateIds.has(template.id)))
+  state.goals.push(...seeded.goals.filter((goal) => !goalIds.has(goal.id)))
+  state.jobs.push(...seeded.jobs.filter((job) => !jobIds.has(job.id)))
+  state.greenlights.push(...seeded.greenlights.filter((rule) => !greenlightIds.has(rule.id)))
+
+  for (const seededJob of seeded.jobs) {
+    const existingJob = state.jobs.find((job) => job.id === seededJob.id)
+
+    if (!existingJob) continue
+
+    for (const seededStep of seededJob.steps) {
+      const existingStep = existingJob.steps.find((jobStep) => jobStep.id === seededStep.id)
+
+      if (existingStep && !existingStep.itemEffects?.length && seededStep.itemEffects?.length) {
+        existingStep.itemEffects = seededStep.itemEffects
+      }
+    }
+  }
+
+  const commonGreenlight = state.greenlights.find((rule) => rule.id === 'greenlight-common-logistics')
+
+  if (commonGreenlight && !commonGreenlight.templateIds.includes('safe_zone_setup')) {
+    commonGreenlight.templateIds.push('safe_zone_setup')
+    commonGreenlight.notes = commonGreenlight.notes.includes('Phase 6')
+      ? commonGreenlight.notes
+      : 'Phase 6 simulated logistics only; non-Maphew bots remain simulated.'
+    commonGreenlight.updatedAt = timestamp
+  }
+
+  if (!state.logistics) {
+    state.logistics = seedLogistics(timestamp)
+    return
+  }
+
+  const chestIds = new Set(state.logistics.chests.map((chest) => chest.id))
+  const inventoryIds = new Set(state.logistics.inventories.map((inventory) => inventory.botId))
+  const recipeIds = new Set(state.logistics.recipes.map((recipe) => recipe.id))
+
+  state.logistics.chests.push(...seeded.logistics.chests.filter((chest) => !chestIds.has(chest.id)))
+  state.logistics.inventories.push(...seeded.logistics.inventories.filter((inventory) => !inventoryIds.has(inventory.botId)))
+  state.logistics.recipes.push(...seeded.logistics.recipes.filter((recipe) => !recipeIds.has(recipe.id)))
+  state.logistics.movements ??= []
+}
+
+function migrateCoordinationState(raw: unknown): { state: CoordinationState, migrated: boolean } {
+  const parsed = raw as Record<string, unknown> & { version?: number }
+
+  if (parsed.version !== 1 && parsed.version !== 2) {
+    throw new Error('Unsupported coordination state version')
+  }
+
+  const state = parsed as unknown as CoordinationState
+  const migrated = parsed.version !== stateVersion || !state.logistics
+
+  state.version = stateVersion
+  state.crew ??= []
+  state.goals ??= []
+  state.plans ??= []
+  state.jobs ??= []
+  state.templates ??= []
+  state.greenlights ??= []
+  state.proposals ??= []
+  mergeMissingSeedData(state)
+  refreshCrewQueueState(state)
+
+  return { state, migrated }
+}
+
+function stackCount(items: ItemStack[], itemId: string) {
+  return items.find((itemStack) => itemStack.itemId === itemId)?.count ?? 0
+}
+
+function addItems(items: ItemStack[], stack: ItemStack) {
+  const existing = items.find((itemStack) => itemStack.itemId === stack.itemId)
+
+  if (existing) {
+    existing.count += stack.count
+    existing.label = stack.label
+    return
+  }
+
+  items.push({ ...stack })
+}
+
+function removeItems(items: ItemStack[], stack: ItemStack) {
+  const existing = items.find((itemStack) => itemStack.itemId === stack.itemId)
+
+  if (!existing || existing.count < stack.count) {
+    throw new Error(`Not enough ${stack.label} available`)
+  }
+
+  existing.count -= stack.count
+
+  if (existing.count === 0) {
+    items.splice(items.indexOf(existing), 1)
+  }
+}
+
+function itemsForEndpoint(state: CoordinationState, endpoint: LogisticsEndpoint) {
+  if (endpoint.type === 'chest') {
+    const chest = state.logistics.chests.find((item) => item.id === endpoint.id)
+
+    if (!chest) throw new Error(`Unknown chest: ${endpoint.label}`)
+    return { items: chest.items, markUpdated: (timestamp: string) => { chest.updatedAt = timestamp } }
+  }
+
+  if (endpoint.type === 'bot') {
+    const inventory = state.logistics.inventories.find((item) => item.botId === endpoint.id)
+
+    if (!inventory) throw new Error(`Unknown bot inventory: ${endpoint.label}`)
+    return { items: inventory.items, markUpdated: (timestamp: string) => { inventory.updatedAt = timestamp } }
+  }
+
+  throw new Error(`Unsupported logistics endpoint: ${endpoint.label}`)
+}
+
+function applyItemEffect(state: CoordinationState, job: CrewJob, stepRecord: JobStep, itemEffect: LogisticsItemEffect, timestamp: string): ItemMovementRecord {
+  const stack = item(itemEffect.itemId, itemEffect.label, itemEffect.count)
+
+  if (itemEffect.from) {
+    const source = itemsForEndpoint(state, itemEffect.from)
+    removeItems(source.items, stack)
+    source.markUpdated(timestamp)
+  }
+
+  if (itemEffect.to) {
+    const target = itemsForEndpoint(state, itemEffect.to)
+    addItems(target.items, stack)
+    target.markUpdated(timestamp)
+  }
+
+  const movement: ItemMovementRecord = {
+    id: `move-${randomUUID()}`,
+    timestamp,
+    jobId: job.id,
+    stepId: stepRecord.id,
+    kind: itemEffect.kind,
+    itemId: itemEffect.itemId,
+    label: itemEffect.label,
+    count: itemEffect.count,
+    from: itemEffect.from,
+    to: itemEffect.to
+  }
+
+  state.logistics.movements.unshift(movement)
+  state.logistics.movements = state.logistics.movements.slice(0, 80)
+  return movement
+}
+
+function lowStockWarnings(state: CoordinationState): LowStockWarning[] {
+  return state.logistics.chests.flatMap((chest) => chest.minimums
+    .map((minimum) => ({
+      chestId: chest.id,
+      chestLabel: chest.label,
+      itemId: minimum.itemId,
+      label: minimum.label,
+      current: stackCount(chest.items, minimum.itemId),
+      minimum: minimum.count
+    }))
+    .filter((warning) => warning.current < warning.minimum))
+}
+
+function activeJobsForBot(state: CoordinationState, botId: CrewBotId) {
+  return state.jobs.filter((job) => job.assignedBotId === botId && !terminalJobStates.has(job.status))
+}
+
+function refreshCrewQueueState(state: CoordinationState) {
+  const timestamp = now()
+
+  for (const bot of state.crew) {
+    const activeJobs = activeJobsForBot(state, bot.id)
+    const inventory = state.logistics?.inventories.find((item) => item.botId === bot.id)
+    const itemSummary = inventory?.items.length
+      ? inventory.items.slice(0, 3).map((stack) => `${stack.label} x${stack.count}`).join(', ')
+      : inventory ? 'Empty inventory' : bot.inventorySummary
+
+    bot.queueLength = activeJobs.length
+    bot.currentJobId = activeJobs[0]?.id ?? null
+
+    if (bot.runtime !== 'planned') {
+      bot.status = activeJobs.some((job) => job.status === 'blocked') ? 'blocked' : activeJobs.length ? 'queued' : 'idle'
+      bot.inventorySummary = itemSummary
+      bot.lastActivityAt = activeJobs.length || inventory ? timestamp : bot.lastActivityAt
+    }
   }
 }
 
@@ -637,6 +1162,8 @@ function deterministicProposal(state: CoordinationState, prompt: string): Planne
 async function saveState(state: CoordinationState) {
   const { statePath } = getCoordinationPaths()
 
+  state.version = stateVersion
+  refreshCrewQueueState(state)
   state.updatedAt = now()
   await mkdir(dirname(statePath), { recursive: true })
   await writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8')
@@ -688,13 +1215,21 @@ export async function readCoordinationState(): Promise<CoordinationState> {
 
   try {
     const raw = await readFile(statePath, 'utf8')
-    const parsed = JSON.parse(raw) as CoordinationState
+    const { state, migrated } = migrateCoordinationState(JSON.parse(raw))
 
-    if (parsed.version !== stateVersion) {
-      throw new Error('Unsupported coordination state version')
+    if (migrated) {
+      await saveState(state)
+      await appendEvent({
+        type: 'coordination_state_migrated',
+        severity: 'info',
+        botId: null,
+        jobId: null,
+        title: 'Coordination state upgraded',
+        message: 'Migrated coordination state to version 2 with simulated logistics.'
+      })
     }
 
-    return parsed
+    return state
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
       throw error
@@ -719,22 +1254,136 @@ export async function getCoordinationDashboard(): Promise<CoordinationDashboardP
   const state = await readCoordinationState()
   const events = await readEvents()
   const requests = allRequests(state)
+  const lowStock = lowStockWarnings(state)
   const { statePath, eventLogPath } = getCoordinationPaths()
 
   return {
     ...state,
     requests,
     events,
+    lowStockWarnings: lowStock,
     summary: {
       goalsOpen: state.goals.filter((goal) => !['completed', 'rejected'].includes(goal.status)).length,
       jobsActive: state.jobs.filter((job) => !completedJobStates.has(job.status)).length,
       jobsPendingApproval: state.jobs.filter((job) => job.approval === 'pending').length + state.proposals.filter((proposal) => proposal.status === 'proposed').length,
       requestsOpen: requests.filter((request) => ['open', 'proposed'].includes(request.status)).length,
       greenlightsEnabled: state.greenlights.filter((rule) => rule.enabled).length,
+      lowStockWarnings: lowStock.length,
+      movementsLogged: state.logistics.movements.length,
       storagePath: formatLocalPath(statePath),
       eventLogPath: formatLocalPath(eventLogPath)
     }
   }
+}
+
+export async function getLogisticsDashboard(): Promise<LogisticsDashboardPayload> {
+  const state = await readCoordinationState()
+
+  return {
+    ...state.logistics,
+    lowStockWarnings: lowStockWarnings(state),
+    updatedAt: state.updatedAt
+  }
+}
+
+export async function simulateJobStep(id: string) {
+  const state = await readCoordinationState()
+  const job = state.jobs.find((item) => item.id === id)
+
+  if (!job) {
+    throw new Error('Job not found')
+  }
+
+  if (terminalJobStates.has(job.status)) {
+    throw new Error('Job is already terminal')
+  }
+
+  if (!runnableApprovals.has(job.approval)) {
+    throw new Error('Job must be approved or greenlit before simulation can advance')
+  }
+
+  const incompleteDependency = job.dependencies.find((dependencyId) => {
+    const dependency = state.jobs.find((item) => item.id === dependencyId)
+    return dependency && dependency.status !== 'completed'
+  })
+
+  if (incompleteDependency) {
+    job.status = 'blocked'
+    job.updatedAt = now()
+    await saveState(state)
+    await appendEvent({
+      type: 'job_blocked_dependency',
+      severity: 'warning',
+      botId: job.assignedBotId,
+      jobId: job.id,
+      title: 'Job blocked',
+      message: `${job.label} is waiting on ${incompleteDependency}.`
+    })
+    throw new Error(`Job is waiting on dependency ${incompleteDependency}`)
+  }
+
+  const nextStep = [...job.steps].sort((a, b) => a.order - b.order).find((item) => item.status !== 'completed' && item.status !== 'skipped')
+
+  if (!nextStep) {
+    job.status = 'completed'
+    job.progressPercent = 100
+    job.updatedAt = now()
+    await saveState(state)
+    return getCoordinationDashboard()
+  }
+
+  const timestamp = now()
+  const appliedMovements: ItemMovementRecord[] = []
+
+  try {
+    for (const itemEffect of nextStep.itemEffects ?? []) {
+      appliedMovements.push(applyItemEffect(state, job, nextStep, itemEffect, timestamp))
+    }
+  } catch (error) {
+    nextStep.status = 'blocked'
+    job.status = 'blocked'
+    job.updatedAt = timestamp
+    await saveState(state)
+    await appendEvent({
+      type: 'job_blocked_materials',
+      severity: 'warning',
+      botId: job.assignedBotId,
+      jobId: job.id,
+      title: 'Materials missing',
+      message: error instanceof Error ? error.message : `${job.label} is missing materials.`
+    })
+    throw error
+  }
+
+  nextStep.status = 'completed'
+  nextStep.startedAt ??= timestamp
+  nextStep.completedAt = timestamp
+  job.status = job.steps.every((item) => item.status === 'completed' || item.status === 'skipped') ? 'completed' : 'running'
+  job.progressPercent = Math.round((job.steps.filter((item) => item.status === 'completed' || item.status === 'skipped').length / job.steps.length) * 100)
+  job.updatedAt = timestamp
+
+  if (job.status === 'completed') {
+    for (const request of allRequests(state)) {
+      if (request.spawnedJobId === job.id && request.status !== 'resolved') {
+        request.status = 'resolved'
+        request.updatedAt = timestamp
+      }
+    }
+  }
+
+  await saveState(state)
+  await appendEvent({
+    type: job.status === 'completed' ? 'job_completed' : 'job_step_simulated',
+    severity: job.status === 'completed' ? 'success' : 'info',
+    botId: job.assignedBotId,
+    jobId: job.id,
+    title: job.status === 'completed' ? 'Job completed' : 'Step simulated',
+    message: appliedMovements.length
+      ? `${nextStep.label}: ${appliedMovements.map((movement) => `${movement.label} x${movement.count}`).join(', ')}`
+      : nextStep.label
+  })
+
+  return getCoordinationDashboard()
 }
 
 export async function createGoal(input: { label?: string, detail?: string, planId?: string | null }) {

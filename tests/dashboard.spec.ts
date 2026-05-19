@@ -3,7 +3,6 @@ import { dirname } from 'node:path'
 import { expect, test } from '@playwright/test'
 
 const placeholderRoutes = [
-  ['/chests', 'Chests / Items'],
   ['/projects', 'Projects'],
   ['/logs', 'Logs'],
   ['/settings', 'Settings']
@@ -244,6 +243,10 @@ test('/jobs renders coordination queues and approvals', async ({ request, page }
   await expect(page.getByRole('row', { name: /Snackwella/ })).toBeVisible()
   await expect(page.getByText('Prepare food for Maphew')).toBeVisible()
   await expect(page.getByText('Craft a hoe')).toBeVisible()
+  await expect(page.getByText('Prepare safe setup crate')).toBeVisible()
+  await page.getByText('Prepare food for Maphew').first().click()
+  await expect(page.getByRole('button', { name: 'Simulate Step' }).first()).toBeVisible()
+  await expect(page.getByText('Logistics Effects')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Greenlight Summary' })).toBeVisible()
   await expect(page.getByText('Maphew routine survey')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Open Planner' })).toHaveAttribute('href', '/planner')
@@ -257,8 +260,93 @@ test('/jobs renders coordination queues and approvals', async ({ request, page }
 
   expect(coordination.summary.jobsActive).toBeGreaterThan(0)
   expect(coordination.summary.greenlightsEnabled).toBeGreaterThanOrEqual(2)
+  expect(coordination.summary.lowStockWarnings).toBeGreaterThan(0)
 
   await page.screenshot({ path: 'test-results/jobs-coordination-desktop.png', fullPage: true })
+})
+
+test('coordination v1 state migrates to v2 logistics without losing jobs', async ({ request }) => {
+  const seededResponse = await request.get('/api/coordination')
+  const seeded = await seededResponse.json()
+  const legacyState = {
+    ...seeded,
+    version: 1
+  }
+
+  delete legacyState.logistics
+  delete legacyState.requests
+  delete legacyState.events
+  delete legacyState.lowStockWarnings
+  delete legacyState.summary
+
+  await writeFile(coordinationFixturePath, `${JSON.stringify(legacyState, null, 2)}\n`, 'utf8')
+
+  const migratedResponse = await request.get('/api/coordination')
+  const migrated = await migratedResponse.json()
+
+  expect(migrated.version).toBe(2)
+  expect(migrated.jobs.some((job: { id: string }) => job.id === 'job-feed-maphew')).toBeTruthy()
+  expect(migrated.logistics.chests.length).toBeGreaterThan(0)
+  expect(migrated.logistics.recipes.some((recipe: { id: string }) => recipe.id === 'recipe-wooden-hoe')).toBeTruthy()
+  expect(migrated.jobs.find((job: { id: string }) => job.id === 'job-fetch-seeds').steps[1].itemEffects.length).toBeGreaterThan(0)
+  expect(migrated.greenlights.find((rule: { id: string }) => rule.id === 'greenlight-common-logistics').templateIds).toContain('safe_zone_setup')
+})
+
+test('simulated logistics jobs apply item effects one step at a time', async ({ request }) => {
+  const blockedResponse = await request.post('/api/jobs/job-craft-hoe/simulate-step')
+  expect(blockedResponse.status()).toBe(409)
+
+  const firstFetchResponse = await request.post('/api/jobs/job-fetch-seeds/simulate-step')
+  expect(firstFetchResponse.ok()).toBeTruthy()
+
+  const secondFetchResponse = await request.post('/api/jobs/job-fetch-seeds/simulate-step')
+  expect(secondFetchResponse.ok()).toBeTruthy()
+
+  const afterFetch = await secondFetchResponse.json()
+  const snackwellaInventory = afterFetch.logistics.inventories.find((inventory: { botId: string }) => inventory.botId === 'snackwella')
+
+  expect(afterFetch.jobs.find((job: { id: string }) => job.id === 'job-fetch-seeds').status).toBe('completed')
+  expect(snackwellaInventory.items.some((stack: { itemId: string, count: number }) => stack.itemId === 'wheat_seeds' && stack.count === 8)).toBeTruthy()
+  expect(afterFetch.requests.find((request: { id: string }) => request.id === 'req-seeds-for-food').status).toBe('resolved')
+
+  await request.post('/api/jobs/job-craft-hoe/approve')
+  const craftResponse = await request.post('/api/jobs/job-craft-hoe/simulate-step')
+  const afterCraft = await craftResponse.json()
+  const toolRack = afterCraft.logistics.chests.find((chest: { id: string }) => chest.id === 'chest-tool-rack')
+
+  expect(afterCraft.jobs.find((job: { id: string }) => job.id === 'job-craft-hoe').status).toBe('completed')
+  expect(toolRack.items.some((stack: { itemId: string, count: number }) => stack.itemId === 'wooden_hoe' && stack.count === 1)).toBeTruthy()
+
+  await request.post('/api/jobs/job-safe-setup/simulate-step')
+  await request.post('/api/jobs/job-safe-setup/simulate-step')
+  const safeSetupResponse = await request.post('/api/jobs/job-safe-setup/simulate-step')
+  const afterSafeSetup = await safeSetupResponse.json()
+  const safeSetupChest = afterSafeSetup.logistics.chests.find((chest: { id: string }) => chest.id === 'chest-safe-setup')
+
+  expect(afterSafeSetup.jobs.find((job: { id: string }) => job.id === 'job-safe-setup').status).toBe('completed')
+  expect(safeSetupChest.items.some((stack: { itemId: string, count: number }) => stack.itemId === 'compass' && stack.count === 1)).toBeTruthy()
+})
+
+test('/chests renders simulated logistics state and movement history', async ({ request, page }) => {
+  await request.post('/api/jobs/job-fetch-seeds/simulate-step')
+  await request.post('/api/jobs/job-fetch-seeds/simulate-step')
+
+  await page.goto('/chests')
+
+  await expect(page.getByRole('heading', { name: 'Chests / Items', level: 1 })).toBeVisible()
+  await expect(page.getByText('Track known storage, bot inventories, recipes, low stock, and item movement.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Chest Registry' })).toBeVisible()
+  await expect(page.getByText('Seed Store').first()).toBeVisible()
+  await expect(page.getByText('Safe Setup Crate').first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Bot Inventories' })).toBeVisible()
+  await expect(page.getByText('Snackwella').first()).toBeVisible()
+  await expect(page.getByText('Wheat Seeds x8').first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Recipes / Workstations' })).toBeVisible()
+  await expect(page.getByText('Wooden Hoe').first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Movement History' })).toBeVisible()
+  await expect(page.getByText('Fetch starter seeds')).toBeVisible()
+
+  await page.screenshot({ path: 'test-results/chests-logistics-desktop.png', fullPage: true })
 })
 
 test('/world renders the Maphew survey map and pins findings', async ({ page }) => {
@@ -338,4 +426,18 @@ test('mobile world map stacks without page overflow', async ({ page }) => {
   expect(scrollWidth).toBeLessThanOrEqual(viewportWidth + 1)
 
   await page.screenshot({ path: 'test-results/world-map-mobile.png', fullPage: true })
+})
+
+test('mobile chests page stacks without page overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 })
+  await page.goto('/chests')
+
+  await expect(page.getByRole('heading', { name: 'Chests / Items' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Chest Registry' })).toBeVisible()
+
+  const scrollWidth = await page.locator('body').evaluate(() => document.documentElement.scrollWidth)
+  const viewportWidth = await page.locator('body').evaluate(() => document.documentElement.clientWidth)
+  expect(scrollWidth).toBeLessThanOrEqual(viewportWidth + 1)
+
+  await page.screenshot({ path: 'test-results/chests-logistics-mobile.png', fullPage: true })
 })
