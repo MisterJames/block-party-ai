@@ -1,6 +1,6 @@
 # Phase 5 Coordination Core
 
-Phase 5 adds the first working coordination layer for Block Party AI. It turns the Phase 4 lexicon into local state, APIs, dashboard wiring, and a `/jobs` command center while keeping all non-Maphew execution simulated.
+Phase 5 adds the first working coordination layer for Block Party AI. It turns the Phase 4 lexicon into local state, APIs, dashboard wiring, a planning surface on `/planner`, and an execution queue surface on `/jobs` while keeping all non-Maphew execution simulated.
 
 ## What Changed
 
@@ -12,7 +12,8 @@ Phase 5 adds the first working coordination layer for Block Party AI. It turns t
 * Added seeded jobs for surveying spawn, preparing food for Maphew, fetching starter seeds, and crafting a hoe.
 * Added a deterministic reusable "Build foundry" plan seed and deterministic planner proposal drafting. This phase does not call OpenAI to author plans.
 * Wired coordination summary, crew queues, active jobs, requests, and recent events into `GET /api/dashboard` and the dashboard Pinia store.
-* Replaced the `/jobs` placeholder route with a compact command center for summaries, planner proposal drafting, human goal creation, greenlights, bot queues, job details, steps, requests, and approval actions.
+* Replaced the `/planner` placeholder with tabs for deterministic proposal drafting, human goal creation, proposal approval, read-only greenlight policy review, and the existing free-form planner POC.
+* Replaced the `/jobs` placeholder with an execution command center for bot queues, job details, steps, requests, concrete job approve/reject/cancel actions, and a compact planning-policy summary.
 * Added Snackwella's `PROVISIONS_BOT_NAME` configuration and coordination state paths to environment defaults.
 
 ## State Files
@@ -62,6 +63,12 @@ Maphew remains the only real Mineflayer executor. Snackwella, Chesterton, AnvilA
 
 Planner proposal drafting is deterministic. The Phase 5 planner can draft known proposal shapes, such as foundry, hoe, and food flows, but it does not call the OpenAI API to invent reusable plans or job templates. Real AI plan authoring remains Phase 9.
 
+The UI boundary is intentional:
+
+* `/planner` owns goal creation, planner proposal drafting, proposal approval, and greenlight policy review.
+* `/jobs` owns bot queues, job order visibility, concrete job approval, step progress, blockers, and job requests.
+* `/jobs` links back to `/planner` for pending proposals and shows only a compact read-only greenlight summary.
+
 ## Verification
 
 Run these commands after coordination changes:
@@ -72,7 +79,7 @@ $env:NUXT_IGNORE_LOCK='1'; corepack pnpm build
 corepack pnpm test:e2e
 ```
 
-The Phase 5 e2e suite includes a `/jobs` smoke test that drafts a foundry proposal, verifies seeded queues and greenlights, and captures `test-results/jobs-coordination-desktop.png`.
+The Phase 5 e2e suite includes `/planner` coverage for drafting and approving a foundry proposal, plus `/jobs` coverage for seeded queues, job details, greenlight summary, and execution-only controls. It captures `test-results/planner-coordination-desktop.png` and `test-results/jobs-coordination-desktop.png`.
 
 Nuxt 3.21 may still emit upstream `DEP0155` trailing-slash export-map warnings during build. Those warnings are tracked in `docs/implementation/dashboard-scaffold.md` and were not introduced by this phase.
 

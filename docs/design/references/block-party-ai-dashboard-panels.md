@@ -20,7 +20,7 @@ The Phase 3 Maphew site map slice is complete on `feature/maphew-site-map`. It a
 
 The Phase 4 crew coordination planning slice is complete on `feature/crew-coordination-planning`. It reshapes the roadmap around goals, reusable plans, jobs, steps, bot requests, templates, greenlight rules, and Snackwella before more real bot execution is added. See `docs/implementation/crew-coordination-planning.md`.
 
-The Phase 5 coordination core slice is complete on `feature/coordination-core`. It adds JSON/JSONL-backed coordination state, seeded crew queues, reusable plans/templates, job requests, deterministic planner proposals, approval actions, greenlight rules, dashboard status wiring, and a real `/jobs` command center. See `docs/implementation/coordination-core.md`.
+The Phase 5 coordination core slice is complete on `feature/coordination-core`, with follow-up boundary cleanup on `feature/planner-jobs-boundary`. It adds JSON/JSONL-backed coordination state, seeded crew queues, reusable plans/templates, job requests, deterministic planner proposals, approval actions, greenlight rules, dashboard status wiring, `/planner` for planning/policy, and `/jobs` for execution queues. See `docs/implementation/coordination-core.md`.
 
 Phase 7 is reserved for real non-digger bot implementation. Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination should become real Mineflayer adapters before diggers or destructive mining are implemented. See `docs/implementation/non-digger-bot-implementation.md`.
 
@@ -550,7 +550,7 @@ Greenlight rules let the human say "you do not need my approval for this again" 
 
 The backend must enforce approval and greenlight rules. Do not rely on the UI alone.
 
-Phase 5 currently exposes the broader command-center surface through `GET /api/coordination`, `GET /api/jobs`, `POST /api/goals`, `POST /api/planner/proposals`, proposal approve/reject endpoints, job approve/reject/cancel/request endpoints, and greenlight list/create endpoints. The dedicated pending-approval endpoint can still be added later if the UI needs a narrower feed.
+Phase 5 currently exposes the broader coordination surface through `GET /api/coordination`, `GET /api/jobs`, `POST /api/goals`, `POST /api/planner/proposals`, proposal approve/reject endpoints, job approve/reject/cancel/request endpoints, and greenlight list/create endpoints. The UI boundary is: `/planner` owns goals, proposals, proposal approval, and greenlight policy review; `/jobs` owns queues, concrete job approval, steps, blockers, and requests. The dedicated pending-approval endpoint can still be added later if the UI needs a narrower feed.
 
 ## Planner panel
 

@@ -387,7 +387,9 @@ The dashboard starts idle. Use the Local World dropdown to start or stop the con
 * Add reusable goals, plans, jobs, steps, job requests, templates, and greenlight rules
 * Add bot queues and step tracking for Maphew plus simulated Snackwella, Chesterton, AnvilAnnie, and Blocko workflows
 * Add deterministic planner proposal batches and human approval
-* Wire coordination summaries into the dashboard and make `/jobs` the command center
+* Wire coordination summaries into the dashboard
+* Make `/planner` the home for goal creation, proposal drafting, proposal approval, and greenlight policy review
+* Make `/jobs` the execution command center for bot queues, concrete job approvals, steps, blockers, and requests
 * Keep Minecraft chat as a visible announcement layer while local state remains authoritative
 * Completed implementation notes: `docs/implementation/coordination-core.md`
 

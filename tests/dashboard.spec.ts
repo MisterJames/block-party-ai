@@ -147,11 +147,14 @@ test('planner POC submits a free-form call and refreshes AI usage', async ({ req
   const beforeSummaryResponse = await request.get('/api/ai-usage/summary')
   const beforeSummary = await beforeSummaryResponse.json()
 
-  await page.goto('/planner')
+  await page.goto('/planner?tab=freeform')
 
   await expect(page.getByRole('heading', { name: 'Planner', exact: true })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'AI Usage' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Proposals' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Greenlights' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Free-form POC' })).toBeVisible()
   await expect(page.getByText('Free-form Planner Chat')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'AI Usage' })).toBeVisible()
 
   await page.getByPlaceholder(/Ask the planner something exploratory/).fill('Sketch a safe first Maphew survey note.')
   await page.getByRole('button', { name: 'Send' }).click()
@@ -168,6 +171,37 @@ test('planner POC submits a free-form call and refreshes AI usage', async ({ req
     .toBeGreaterThan(beforeSummary.totalTokensAllTime)
 
   await page.screenshot({ path: 'test-results/planner-poc-desktop.png', fullPage: true })
+})
+
+test('/planner drafts and approves coordination proposals', async ({ request, page }) => {
+  await page.goto('/planner')
+
+  await expect(page.getByRole('heading', { name: 'Planner', exact: true })).toBeVisible()
+  await expect(page.getByText('Plan goals, review proposals, and manage approval policy.')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Proposals' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Greenlights' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Free-form POC' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Planner Proposal', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Human Goal' })).toBeVisible()
+
+  await page.getByPlaceholder(/Build a foundry/).fill('Build a foundry near the workshop.')
+  await page.getByRole('button', { name: 'Draft' }).click()
+  await expect(page.getByRole('heading', { name: 'Planner Proposals' })).toBeVisible()
+  await expect(page.getByText(/4 jobs/).first()).toBeVisible()
+
+  await page.screenshot({ path: 'test-results/planner-coordination-desktop.png', fullPage: true })
+
+  await page.getByRole('button', { name: 'Approve' }).click()
+  await expect(page.getByText('approved').first()).toBeVisible()
+
+  const coordinationResponse = await request.get('/api/coordination')
+  const coordination = await coordinationResponse.json()
+
+  expect(coordination.proposals.length).toBeGreaterThan(0)
+  expect(coordination.jobs.some((job: { label: string }) => job.label === 'Frame foundry work area')).toBeTruthy()
+
+  await page.goto('/jobs')
+  await expect(page.getByText('Frame foundry work area')).toBeVisible()
 })
 
 test('overview does not auto-start bot or mining activity', async ({ page }) => {
@@ -203,25 +237,26 @@ test('/jobs renders coordination queues and approvals', async ({ request, page }
   await page.goto('/jobs')
 
   await expect(page.getByRole('heading', { name: 'Jobs', level: 1 })).toBeVisible()
-  await expect(page.getByText('Coordination core')).toBeVisible()
+  await expect(page.getByText('Execution queues')).toBeVisible()
+  await expect(page.getByText('Inspect bot queues, job steps, blockers, and execution approvals.')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Planning Queue' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Bot Queues' })).toBeVisible()
   await expect(page.getByRole('row', { name: /Snackwella/ })).toBeVisible()
   await expect(page.getByText('Prepare food for Maphew')).toBeVisible()
   await expect(page.getByText('Craft a hoe')).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Greenlights' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Greenlight Summary' })).toBeVisible()
   await expect(page.getByText('Maphew routine survey')).toBeVisible()
-
-  await page.getByPlaceholder(/Build a foundry/).fill('Build a foundry near the workshop.')
-  await page.getByRole('button', { name: 'Draft' }).click()
-  await expect(page.getByRole('heading', { name: 'Planner Proposals' })).toBeVisible()
-  await expect(page.getByText(/4 jobs/).first()).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Open Planner' })).toHaveAttribute('href', '/planner')
+  await expect(page.getByRole('heading', { name: 'Planner Proposal' })).not.toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Human Goal' })).not.toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Planner Proposals' })).not.toBeVisible()
+  await expect(page.getByRole('button', { name: 'Draft' })).not.toBeVisible()
 
   const coordinationResponse = await request.get('/api/coordination')
   const coordination = await coordinationResponse.json()
 
   expect(coordination.summary.jobsActive).toBeGreaterThan(0)
   expect(coordination.summary.greenlightsEnabled).toBeGreaterThanOrEqual(2)
-  expect(coordination.proposals.length).toBeGreaterThan(0)
 
   await page.screenshot({ path: 'test-results/jobs-coordination-desktop.png', fullPage: true })
 })

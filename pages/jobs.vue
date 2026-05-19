@@ -8,9 +8,9 @@
     <section class="space-y-3 p-4 sm:p-5">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Coordination core</p>
+          <p class="text-xs uppercase tracking-[0.16em] text-slate-500">Execution queues</p>
           <h1 class="mt-1 text-xl font-semibold text-slate-50">Jobs</h1>
-          <p class="mt-1 text-sm text-slate-400">Goals, reusable plans, bot queues, requests, approvals, and greenlights.</p>
+          <p class="mt-1 text-sm text-slate-400">Inspect bot queues, job steps, blockers, and execution approvals.</p>
         </div>
         <UButton to="/" icon="i-lucide-layout-dashboard" label="Overview" color="neutral" variant="soft" size="xs" />
       </div>
@@ -25,37 +25,31 @@
 
       <div class="grid grid-cols-1 gap-3 xl:grid-cols-[380px_1fr]">
         <div class="space-y-3">
-          <DashboardPanel title="Planner Proposal" description="Deterministic Phase 5 proposal drafts">
-            <form class="space-y-3" @submit.prevent="createProposal">
-              <UTextarea
-                v-model="proposalDraft"
-                :rows="4"
-                autoresize
-                placeholder="Try: Build a foundry near the workshop, craft a hoe, or feed Maphew."
-              />
-              <div class="flex items-center justify-between gap-3">
-                <p :class="['text-xs', actionError ? 'text-amber-300' : 'text-slate-500']">
-                  {{ actionError || 'Creates proposed goals, plans, jobs, and steps without calling OpenAI.' }}
-                </p>
-                <UButton type="submit" label="Draft" icon="i-lucide-sparkles" color="primary" size="xs" :loading="busyAction === 'proposal'" />
+          <DashboardPanel title="Planning Queue" description="Proposal review lives on Planner">
+            <div class="space-y-3 text-xs">
+              <div class="grid grid-cols-2 gap-2">
+                <div class="rounded-md border border-slate-800 bg-slate-950/60 p-3">
+                  <p class="text-slate-500">Pending Proposals</p>
+                  <p class="mt-1 text-lg font-semibold text-slate-100">{{ pendingProposalCount }}</p>
+                </div>
+                <div class="rounded-md border border-slate-800 bg-slate-950/60 p-3">
+                  <p class="text-slate-500">Open Goals</p>
+                  <p class="mt-1 text-lg font-semibold text-slate-100">{{ coordination?.summary.goalsOpen ?? 0 }}</p>
+                </div>
               </div>
-            </form>
+              <div class="rounded-md border border-slate-800 bg-slate-900/70 p-3">
+                <p class="font-medium text-slate-100">Plans become jobs after approval.</p>
+                <p class="mt-1 leading-5 text-slate-500">Draft goals, review proposal batches, and inspect greenlight policy on Planner.</p>
+                <UButton to="/planner" label="Open Planner" icon="i-lucide-sparkles" color="primary" variant="soft" size="xs" class="mt-3" />
+              </div>
+              <p v-if="actionError" class="text-amber-300">{{ actionError }}</p>
+            </div>
           </DashboardPanel>
 
-          <DashboardPanel title="Human Goal" description="Add a goal for later approval">
-            <form class="space-y-3" @submit.prevent="createGoal">
-              <UInput v-model="goalLabel" placeholder="Goal label" size="sm" />
-              <UTextarea v-model="goalDetail" :rows="3" autoresize placeholder="What outcome should the crew plan for?" />
-              <div class="flex justify-end">
-                <UButton type="submit" label="Create Goal" icon="i-lucide-plus" color="neutral" variant="soft" size="xs" :loading="busyAction === 'goal'" />
-              </div>
-            </form>
-          </DashboardPanel>
-
-          <DashboardPanel title="Greenlights" body-class="p-0">
+          <DashboardPanel title="Greenlight Summary" description="Policy is managed on Planner" body-class="p-0">
             <div class="divide-y divide-slate-800">
               <div
-                v-for="rule in coordination?.greenlights ?? []"
+                v-for="rule in (coordination?.greenlights ?? []).slice(0, 3)"
                 :key="rule.id"
                 class="p-3 text-xs"
               >
@@ -71,6 +65,9 @@
                 <p class="mt-2 text-slate-400">
                   {{ rule.templateIds.join(', ') || 'No templates' }}
                 </p>
+              </div>
+              <div class="p-3">
+                <UButton to="/planner" label="Review Greenlights" icon="i-lucide-badge-check" color="neutral" variant="ghost" size="xs" />
               </div>
             </div>
           </DashboardPanel>
@@ -243,48 +240,6 @@
             </div>
           </DashboardPanel>
 
-          <DashboardPanel title="Planner Proposals" body-class="p-0">
-            <div class="divide-y divide-slate-800">
-              <div
-                v-for="proposal in coordination?.proposals ?? []"
-                :key="proposal.id"
-                class="p-3 text-xs"
-              >
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div class="min-w-0">
-                    <p class="font-medium text-slate-100">{{ proposal.label }}</p>
-                    <p class="mt-1 text-slate-500">{{ proposal.jobs.length }} jobs · {{ proposal.detail }}</p>
-                  </div>
-                  <div class="flex shrink-0 gap-2">
-                    <UBadge :color="proposal.status === 'approved' ? 'success' : proposal.status === 'rejected' ? 'warning' : 'neutral'" variant="subtle" size="sm">
-                      {{ proposal.status }}
-                    </UBadge>
-                    <UButton
-                      v-if="proposal.status === 'proposed'"
-                      label="Approve"
-                      color="success"
-                      variant="soft"
-                      size="xs"
-                      :loading="busyAction === proposal.id + ':approve'"
-                      @click="proposalAction(proposal.id, 'approve')"
-                    />
-                    <UButton
-                      v-if="proposal.status === 'proposed'"
-                      label="Reject"
-                      color="warning"
-                      variant="soft"
-                      size="xs"
-                      :loading="busyAction === proposal.id + ':reject'"
-                      @click="proposalAction(proposal.id, 'reject')"
-                    />
-                  </div>
-                </div>
-              </div>
-              <p v-if="!coordination?.proposals.length" class="p-4 text-xs text-slate-500">
-                No planner proposals yet.
-              </p>
-            </div>
-          </DashboardPanel>
         </div>
       </div>
     </section>
@@ -299,19 +254,18 @@ const store = useDashboardStore()
 const coordination = ref<CoordinationDashboardPayload | null>(null)
 const selectedJobId = ref('')
 const activeFilter = ref('All')
-const proposalDraft = ref('Build a foundry near the workshop.')
-const goalLabel = ref('')
-const goalDetail = ref('')
 const actionError = ref('')
 const busyAction = ref('')
 const filters = ['All', 'Proposed', 'Queued', 'Blocked', 'Completed']
+const pendingProposalCount = computed(() => coordination.value?.proposals.filter((proposal) => proposal.status === 'proposed').length ?? 0)
+const jobApprovalCount = computed(() => coordination.value?.jobs.filter((job) => job.approval === 'pending').length ?? 0)
 
 const coordinationMetrics = computed<DashboardMetric[]>(() => [
   {
     id: 'coord-jobs',
     label: 'Active Jobs',
     value: String(coordination.value?.summary.jobsActive ?? 0),
-    helper: `${coordination.value?.summary.jobsPendingApproval ?? 0} approval items`,
+    helper: `${jobApprovalCount.value} job approvals`,
     icon: 'i-lucide-clipboard-list',
     accent: 'blue'
   },
@@ -325,10 +279,10 @@ const coordinationMetrics = computed<DashboardMetric[]>(() => [
   },
   {
     id: 'coord-goals',
-    label: 'Open Goals',
-    value: String(coordination.value?.summary.goalsOpen ?? 0),
-    helper: 'Human, bot, or planner outcomes',
-    icon: 'i-lucide-target',
+    label: 'Pending Proposals',
+    value: String(pendingProposalCount.value),
+    helper: 'Reviewed on Planner',
+    icon: 'i-lucide-sparkles',
     accent: 'green'
   },
   {
@@ -369,36 +323,6 @@ async function refresh() {
   coordination.value = await $fetch<CoordinationDashboardPayload>('/api/coordination')
   await store.refreshOperationalStatus()
   selectedJobId.value ||= coordination.value.jobs[0]?.id ?? ''
-}
-
-async function createProposal() {
-  await runAction('proposal', async () => {
-    await $fetch('/api/planner/proposals', {
-      method: 'POST',
-      body: {
-        message: proposalDraft.value
-      }
-    })
-    proposalDraft.value = ''
-  })
-}
-
-async function createGoal() {
-  await runAction('goal', async () => {
-    await $fetch('/api/goals', {
-      method: 'POST',
-      body: {
-        label: goalLabel.value,
-        detail: goalDetail.value
-      }
-    })
-    goalLabel.value = ''
-    goalDetail.value = ''
-  })
-}
-
-async function proposalAction(id: string, action: 'approve' | 'reject') {
-  await runAction(`${id}:${action}`, () => $fetch(`/api/proposals/${id}/${action}`, { method: 'POST' }))
 }
 
 async function jobAction(id: string, action: 'approve' | 'reject' | 'cancel') {
