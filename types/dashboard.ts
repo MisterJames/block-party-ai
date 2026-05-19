@@ -1,4 +1,4 @@
-import type { CoordinationDashboardPayload } from './coordination'
+import type { CoordinationDashboardPayload, CrewBotId } from './coordination'
 
 export type Severity = 'info' | 'success' | 'warning' | 'danger'
 
@@ -250,7 +250,35 @@ export interface DashboardOperationalStatus {
   localServer: LocalServerStatus
   worldConnection: WorldConnectionStatus
   maphew: MaphewStatus
+  nonDiggerCrew: NonDiggerCrewStatus[]
   coordination: CoordinationDashboardPayload
+}
+
+export type NonDiggerCrewBotId = Extract<CrewBotId, 'snackwella' | 'chesterton' | 'anvilannie' | 'blocko'>
+
+export type NonDiggerBotRuntimeState = 'disconnected' | 'connecting' | 'connected' | 'executing' | 'blocked' | 'failed'
+
+export interface NonDiggerChatAnnouncement {
+  id: string
+  timestamp: string
+  message: string
+}
+
+export interface NonDiggerCrewStatus {
+  id: NonDiggerCrewBotId
+  name: string
+  role: string
+  connected: boolean
+  state: NonDiggerBotRuntimeState
+  mode: 'real' | 'fallback'
+  currentJobId: string | null
+  currentJobLabel: string
+  position: MaphewPosition | null
+  health: number | null
+  food: number | null
+  lastActivityAt: string | null
+  lastError: string | null
+  announcements: NonDiggerChatAnnouncement[]
 }
 
 export interface SurveyMapTile extends SurveySampleRecord {

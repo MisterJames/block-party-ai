@@ -6,7 +6,7 @@
       </UTooltip>
     </template>
 
-    <div class="overflow-x-auto">
+    <div class="w-full max-w-full overflow-x-auto">
       <table class="w-full min-w-[900px] table-fixed text-left text-xs">
         <thead class="border-b border-slate-700/70 text-slate-400">
           <tr>

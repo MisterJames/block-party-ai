@@ -70,9 +70,10 @@ const surveyFixtureRecords = [
   }
 ] as const
 
-test.beforeEach(async ({}, testInfo) => {
+test.beforeEach(async ({ request }, testInfo) => {
   await rm(coordinationFixturePath, { force: true })
   await rm(coordinationEventsFixturePath, { force: true })
+  await request.post('/api/bots/non-diggers/disconnect')
 
   if (testInfo.title.includes('empty survey file')) {
     return
@@ -92,7 +93,7 @@ test('overview renders the desktop dashboard shell', async ({ page }) => {
   await expect(page.locator('html')).toHaveClass(/dark/)
   await expect(page.getByRole('heading', { name: 'Dashboard Overview' })).toBeVisible()
   await expect(page.getByText('Block Party AI', { exact: true })).toBeVisible()
-  await expect(page.getByText('Setup Needed')).toBeVisible()
+  await expect(page.getByText('Blocked').first()).toBeVisible()
   await expect(page.getByText('No bots auto-connected')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Local server controls' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'AI Usage' })).toBeVisible()
@@ -223,13 +224,45 @@ test('/bots exposes Maphew controls without auto-connecting', async ({ page }) =
   await page.goto('/bots')
 
   await expect(page.getByRole('heading', { name: 'Bots', level: 1 })).toBeVisible()
-  await expect(page.getByText('Maphew controls are explicit')).toBeVisible()
+  await expect(page.getByText('Maphew controls are explicit; non-digger crew can now run real adapters or fallback steps.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Connect', exact: true })).toBeDisabled()
   await expect(page.getByRole('button', { name: 'Start Survey', exact: true })).toBeDisabled()
   await expect(page.getByText('Start or connect a local Minecraft server')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Non-Digger Crew' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Connect Crew', exact: true })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Fallback Step' }).first()).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Bots', level: 2 })).toBeVisible()
   await expect(page.getByText('CaptainCobble')).toBeVisible()
-  await expect(page.getByText('Snackwella')).toBeVisible()
+  await expect(page.getByText('Snackwella').first()).toBeVisible()
+
+  await page.screenshot({ path: 'test-results/bots-non-digger-desktop.png', fullPage: true })
+})
+
+test('non-digger adapters expose fallback execution without a Minecraft server', async ({ request }) => {
+  const statusResponse = await request.get('/api/bots/non-diggers')
+  const statuses = await statusResponse.json()
+
+  expect(statuses).toHaveLength(4)
+  expect(statuses.every((status: { connected: boolean, mode: string }) => !status.connected && status.mode === 'fallback')).toBeTruthy()
+
+  await request.post('/api/bots/non-diggers/chesterton/execute-step')
+  const secondStepResponse = await request.post('/api/bots/non-diggers/chesterton/execute-step')
+  const secondStep = await secondStepResponse.json()
+  const chesterton = secondStep.bot
+  const job = secondStep.coordination.jobs.find((item: { id: string }) => item.id === 'job-fetch-seeds')
+  const snackwellaInventory = secondStep.coordination.logistics.inventories.find((inventory: { botId: string }) => inventory.botId === 'snackwella')
+
+  expect(chesterton.id).toBe('chesterton')
+  expect(chesterton.connected).toBe(false)
+  expect(chesterton.mode).toBe('fallback')
+  expect(chesterton.announcements.some((announcement: { message: string }) => announcement.message.includes('Chesterton'))).toBeTruthy()
+  expect(job.status).toBe('completed')
+  expect(snackwellaInventory.items.some((stack: { itemId: string, count: number }) => stack.itemId === 'wheat_seeds' && stack.count === 8)).toBeTruthy()
+
+  const coordinationResponse = await request.get('/api/coordination')
+  const coordination = await coordinationResponse.json()
+
+  expect(coordination.events.some((event: { type: string, botId: string }) => event.type === 'bot_step_executed' && event.botId === 'chesterton')).toBeTruthy()
 })
 
 test('/jobs renders coordination queues and approvals', async ({ request, page }) => {
@@ -440,4 +473,18 @@ test('mobile chests page stacks without page overflow', async ({ page }) => {
   expect(scrollWidth).toBeLessThanOrEqual(viewportWidth + 1)
 
   await page.screenshot({ path: 'test-results/chests-logistics-mobile.png', fullPage: true })
+})
+
+test('mobile bots page stacks non-digger controls without page overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 900 })
+  await page.goto('/bots')
+
+  await expect(page.getByRole('heading', { name: 'Bots', level: 1 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Non-Digger Crew' })).toBeVisible()
+
+  const scrollWidth = await page.locator('body').evaluate(() => document.documentElement.scrollWidth)
+  const viewportWidth = await page.locator('body').evaluate(() => document.documentElement.clientWidth)
+  expect(scrollWidth).toBeLessThanOrEqual(viewportWidth + 1)
+
+  await page.screenshot({ path: 'test-results/bots-non-digger-mobile.png', fullPage: true })
 })

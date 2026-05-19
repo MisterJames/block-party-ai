@@ -24,7 +24,7 @@ The Phase 5 coordination core slice is complete on `feature/coordination-core`, 
 
 The Phase 6 logistics simulation slice is complete on `feature/phase-6-logistics-simulation`. It upgrades coordination state to version 2 with chest records, bot inventories, recipes, item movement history, step-level item effects, `POST /api/jobs/:id/simulate-step`, and `/chests` as the logistics command center. See `docs/implementation/logistics-simulation.md`.
 
-Phase 7 is reserved for real non-digger bot implementation. Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination should become real Mineflayer adapters before diggers or destructive mining are implemented. See `docs/implementation/non-digger-bot-implementation.md`.
+The Phase 7 non-digger adapter lifecycle slice is complete on `feature/phase-7-non-digger-bots`. Snackwella, Chesterton, AnvilAnnie, and Blocko now have shared real Mineflayer connection controls, fallback step execution, chat-announcement history, and backend-authoritative non-digger job advancement. See `docs/implementation/non-digger-bot-adapters.md`.
 
 ## Crew coordination lexicon
 
@@ -844,7 +844,7 @@ A sensible implementation order:
 12. Coordination core with job manager, bot queues, job requests, planner proposals, approvals, and greenlight enforcement (complete in Phase 5)
 13. Provisions, chests, tools, and safe setup workflows (complete in Phase 6)
 14. Bot detail pages with queues, current step, requests, inventory, and job history
-15. Real non-digger bot adapters for Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination
+15. Real non-digger bot adapters for Snackwella, Chesterton, AnvilAnnie, Blocko, and safe Maphew coordination (adapter lifecycle complete in Phase 7)
 16. Digger crew and destructive approval gates
 17. Reusable AI plan authoring and AI-drafted template review
 18. Logs and settings pages
